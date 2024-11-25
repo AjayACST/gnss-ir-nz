@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "grss-ir-nz"
+version = "0.1.0"
+description = "High School project for Physics students based around GNSS-IR"
+authors = ["Ajay Quirk <ajay@quirky.codes>", "Craig Jefferies <craig.jefferies@gmail.com", "Delwyn Moller <delwyn.moller@auckland.ac.nz>"]
+license = "GPL-3.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pynmea2 = "^1.19.0"
+pandas = "^2.2.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

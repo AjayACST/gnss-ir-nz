@@ -26,5 +26,8 @@ Join us in building, learning, and exploring!
 ## Contributions
 This project involves collaboration between students, community experts, and educators. Contributions in coding, engineering, data science, or environmental science are welcome.
 
+## Running
+Install [Poetry](https://python-poetry.org/docs/) and run poetry install to install the dependencies
+
 ---
 Explore, learn, and innovate together!

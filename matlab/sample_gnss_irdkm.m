@@ -43,8 +43,8 @@ for a=1:1  %just testing in one loop but
      azim1 = 225;
      azim2 = 360-45;
     %  window by satellite
+    length(prn)
     for kk = 1:length(prn)
-   
       sat=prn(kk)
         
       el = gps_snr_data(sat).el;
