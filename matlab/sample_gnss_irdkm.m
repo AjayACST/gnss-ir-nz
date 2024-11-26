@@ -28,11 +28,13 @@ ediff = 10;
 cf  = 0.1902936; 
 w=4*pi/cf;
 
+
 % checking azimuths in 45 degree bins  %will want to constrain this more
 % for Snowfarm
 azrange = 45; %
 %azrng = [215 240; 270 315; 315 360] 
 naz = round(360/azrange);
+
 %naz =1;
 
 for a=1:1  %just testing in one loop but 
