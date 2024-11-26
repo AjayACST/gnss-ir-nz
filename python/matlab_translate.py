@@ -19,6 +19,8 @@ def find_indices(el, az, emin, emax, azim1, azim2):
 def smooth(data):
     kernel = np.ones(5) / 5
     return np.convolve(data, kernel, mode='same')
+
+
 # satlist = np.array(range(32)) #use all GPS satellites
 # print(satlist)
 pvf = 2 # polynomial order used to remove the direct signal.
@@ -50,7 +52,7 @@ naz = round(360/az_range)
 azim1 = 225
 azim2 = 360-45
 
-gnss_data = readGPS("../data/240606.LOG")
+gnss_data = readGPS("../data/240531.LOG")
 
 for prn in gnss_data:
     el = np.zeros(len(prn))
@@ -87,15 +89,14 @@ for prn in gnss_data:
         sorted_y = save_snr[j]
         sorted_x_int = np.arange(np.min(sorted_x), np.max(sorted_x) + es, es)
         sorted_y_int = np.interp(sorted_x_int, sorted_x, sorted_y)
-
         L = np.max(sorted_x_int)-np.min(sorted_x_int)
 
         freq = np.fft.fft(sorted_y_int)
         hsolve = np.abs(np.fft.fftshift(freq))
 
-        x_values = np.arange(-L/2, L/2, es)
+        x_values = np.linspace(-L/2, L/2, len(hsolve))
         scaled_x = (Fs / L) * x_values * (cf / 2)
         normalized_hsolve = hsolve/np.max(hsolve)
         plt.plot(scaled_x, normalized_hsolve)
-        plt.xlim(-10, 10)
-        plt.show()
+        plt.xlim(-2.5, 2.5)
+plt.show()
