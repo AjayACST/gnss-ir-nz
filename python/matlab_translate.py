@@ -1,6 +1,6 @@
 import numpy as np
-from readGPS import readGPS
 import matplotlib.pyplot as plt
+from readGPS import readGPS
 
 def find_indices(el, az, emin, emax, azim1, azim2):
     condition = (el > emin) & (el < emax) & \
@@ -8,7 +8,7 @@ def find_indices(el, az, emin, emax, azim1, azim2):
                 (~np.isnan(az)) & (~np.isnan(el))
 
     indices = np.where(condition)[0]
-    if indices.size > 0 and np.max(i) >= el.size:
+    if indices.size > 0 and np.max(indices) >= el.size:
         az_trnaspose = az.T.flatten()
         condition_transposed = (el > emin) & (el < emax) & \
                                (az_trnaspose > azim1) & (az_trnaspose < azim2)
@@ -52,31 +52,24 @@ naz = round(360/az_range)
 azim1 = 225
 azim2 = 360-45
 
-gnss_data = readGPS("../data/240531.LOG")
+gnss_data = readGPS("../data/240531.LOG", True)
 
-for prn in gnss_data:
-    el = np.zeros(len(prn))
-    az = np.zeros(len(prn))
-    snr = np.zeros(len(prn))
-    if len(prn) == 0:
-        continue
-    for i in range(len(prn)):
-        prn_data = prn[i]
-        el[i] = prn_data[2]
-        az[i] = prn_data[3]
-        snr[i] = prn_data[4]
+for prn, group in gnss_data.groupby(level='prn'):
+    el = np.array(group.el)
+    az = np.array(group.az)
+    snr = np.array(group.snr)
     i = find_indices(el, az, emin, emax, azim1, azim2)
 
     if i.size == 0:
         continue
     elev_angles = el[i]
     if np.max(elev_angles) - np.min(elev_angles)>ediff:
-        snr_db = np.power(10, el[i])
+        snr_db = np.power(10, snr[i]/20)
 
         az_mean = np.mean(az[i])
 
         # Detrend the data
-        p = np.polyfit(elev_angles, snr_db, pvf)
+        p = np.polyfit(elev_angles, snr_db, pvf, rcond=None)
         pv = np.polyval(p, elev_angles)
         save_snr = smooth(snr_db-pv).conj().T
 
@@ -98,5 +91,5 @@ for prn in gnss_data:
         scaled_x = (Fs / L) * x_values * (cf / 2)
         normalized_hsolve = hsolve/np.max(hsolve)
         plt.plot(scaled_x, normalized_hsolve)
-        plt.xlim(-2.5, 2.5)
-plt.show()
+        plt.xlim(-10, 10)
+    plt.show()
