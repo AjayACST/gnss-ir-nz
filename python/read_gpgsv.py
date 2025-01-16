@@ -42,7 +42,6 @@ def read_gpgsv(gsv_data):
 
         # first block is cells 4 through 7 #
         # data is prn, elev, az, snr       #
-        
         if ("*" in gsv_data[ii][7]): # if we have an early checksum, abort the next group of four
             break
             
@@ -54,7 +53,7 @@ def read_gpgsv(gsv_data):
 
         # second block is cells 8 through 11 #
 
-        if ("*" in gsv_data[ii][11]):  # if we have an early checksum, abort the next group of four
+        if ("*" in gsv_data[ii][8]):  # if we have an early checksum, abort the next group of four
             break
 
         if ((gsv_data[ii][9] != '' and gsv_data[ii][10] != '' and gsv_data[ii][11] != '') and (not np.isnan(int(gsv_data[ii][8])) and int(gsv_data[ii][8]) <= 32)):
@@ -65,7 +64,7 @@ def read_gpgsv(gsv_data):
             
         # third block is cells 12 through 15 #
 
-        if ("*" in gsv_data[ii][15]): # if we have an early checksum, abort the next group of four
+        if ("*" in gsv_data[ii][12]): # if we have an early checksum, abort the next group of four
             break
         
         if ((gsv_data[ii][13] != '' and gsv_data[ii][14] != '' and gsv_data[ii][15] != '') and (not np.isnan(int(gsv_data[ii][12])) and int(gsv_data[ii][12]) <= 32)):
@@ -76,7 +75,8 @@ def read_gpgsv(gsv_data):
 
         # fourth block is cells 16 through 19 #
 
-        gsv_data[ii][19] = gsv_data[ii][19].split("*")[0] # deals with checksum
+        # gsv_data[ii][19] = gsv_data[ii][19].split("*")[0] # deals with checksum
+        # Not needed with UBlox data as we have an extra signal ID parameter after the CNO
         
         if ((gsv_data[ii][17] != '' and gsv_data[ii][18] != '' and gsv_data[ii][19] != '') and (not np.isnan(int(gsv_data[ii][16])) and int(gsv_data[ii][16]) <= 32)):
             prn.append(int(gsv_data[ii][16]))

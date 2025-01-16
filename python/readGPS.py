@@ -182,7 +182,7 @@ def readGPS(Filename, interp=False):
     # print(df_updated.loc[2, 'el'])
     return df_updated
 
-readGPS('../data/240531.LOG', True)
+# readGPS('../data/240531.LOG', True)
 
 ##==================##
 ## more information ##
