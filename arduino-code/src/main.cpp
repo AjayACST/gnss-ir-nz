@@ -1,175 +1,158 @@
 #include <Arduino.h>
-#include <Wire.h>
-#include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 #include <SD.h>
 
-SFE_UBLOX_GNSS gnss;
+#define GPSSerial Serial1
+#define GPSSerialEvent serialEvent1
 
+#define GPS_BAUD_RATE 38400
 
-File gnssFile;
-const int chipSelect = 4;
+#define GPS_BUFFER_SIZE 512
 
-#define sdWriteSize 512
-#define gnssFileBufferSize 16384
+#define MAX_BASNAME_LEN (8+1)
+#define MAX_FILENAME_LEN (MAX_BASNAME_LEN-1+1+3+1) // basename-null+dot+ext+null
 
-uint8_t *gnssBuffer;
+#define IDLE_THRESHOLD 10
 
-unsigned long lastPrint;
+const int SDcard = 4;
 
-int numSFRBX = 0;
-int numRAWX = 0;
+const char basenameDefault[] = "DEFAULT";
+String GPSBuffer = "";
+unsigned long bufferTime = millis();
+const char fileDuration = 'D';
 
-//void newSFRBX(UBX_RXM_SFRBX_data_t *ubxDataStruct) {
-//    numSFRBX++;
-//}
-//
-//void newRAWX(UBX_RXM_RAWX_data_t *ubxDataStuct) {
-//    numRAWX++;
-//}
+int numBlk = 0;
+char basenameOld[MAX_BASNAME_LEN];
 
-void newNAVSAT(UBX_NAV_SAT_data_t *ubxNavSatData) {
-    uint8_t numSats = ubxNavSatData->header.numSvs;
-    Serial.print("Num Satalites in View");
-    Serial.print(numSats);
-    Serial.println();
-
-    for (uint8_t i = 0; i < numSats && i < UBX_NAV_SAT_MAX_BLOCKS; i++) {
-        UBX_NAV_SAT_block_t sat = ubxNavSatData->blocks[i];
-
-        Serial.print("Satellite ");
-        Serial.print(i + 1);
-        Serial.print(": PRN=");
-        Serial.print(sat.svId);
-        Serial.print(", Elevation=");
-        Serial.print(sat.elev);
-        Serial.print("°, Azimuth=");
-        Serial.print(sat.azim);
-        Serial.println("°");
-    }
-}
+bool initSD();
+void getBasename(char basename[], const char dateTime[], bool GPSActive);
+bool getDateTime(const char stringOriginal[], char dateTimeOut[]);
+const char* nth_strchr(const char* s, int c, int n);
 
 void setup() {
-    // write your initialization code here
     Serial.begin(9600);
-    Wire.begin();
-    while (!Serial) {
-        ;
-    }
-    pinMode(LED_BUILTIN, OUTPUT);
-    digitalWrite(LED_BUILTIN, LOW);
 
-    while (Serial.available()) {
-        // Make sure serial buffer is empty
-        Serial.read();
-    }
-    Serial.println("Press any key to start logging.");
-    while (!Serial.available()) {
-        ;
-    }
-    delay(100);
+    initSD();
 
-    while (Serial.available()) {
-        Serial.read();
-    }
+    Serial1.begin(GPS_BAUD_RATE);
 
-    // SD Card Stuff
-    Serial.println("Initializing SD card...");
-    if (!SD.begin(chipSelect)) {
-        Serial.println("Card failed, or not present");
-        while (1);
-    }
-    Serial.println("Card initialized.");
-
-    gnssFile = SD.open("RXM_RAWX.UC2", FILE_WRITE);
-    if (!gnssFile) {
-        Serial.println("Failed to create UBX data file!");
-        while (1);
-    }
-
-    gnss.disableUBX7Fcheck();
-
-    gnss.setFileBufferSize(gnssFileBufferSize);
-
-    if (!gnss.begin()) {
-        Serial.println("u-blox GNSS not detected at default I2C address!");
-        while (1);
-    }
-
-    gnss.setI2COutput(COM_TYPE_UBX);
-    gnss.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT);
-    gnss.setNavigationFrequency(1);
-
-//    gnss.setAutoRXMSFRBXcallbackPtr(&newSFRBX);
-//    gnss.logRXMSFRBX();
-//
-//    gnss.setAutoRXMRAWXcallbackPtr(&newRAWX);
-//    gnss.logRXMRAWX();
-
-    gnss.setAutoNAVSATcallbackPtr(&newNAVSAT);
-//    gnss.log
-
-    gnssBuffer = new uint8_t[sdWriteSize];
-
-    lastPrint = millis();
-
+    GPSBuffer.reserve(GPS_BUFFER_SIZE);
+    GPSSerial.flush();
 }
 
 void loop() {
-    gnss.checkUblox();
-    gnss.checkCallbacks();
-    delay(500);
+    bool GPSActive;
+    char dateTime[6+6+1]; //yymmddHHMMSS\0
+    char basename[MAX_BASNAME_LEN];
+    unsigned long startTime = millis();
 
-//    while (gnss.fileBufferAvailable() >= sdWriteSize) {
-//        digitalWrite(LED_BUILTIN, HIGH);
-//
-//        gnss.extractFileBufferData(gnssBuffer, sdWriteSize);
-//
-//        gnssFile.write(gnssBuffer, sdWriteSize);
-//
-//        // In case SD writing is slow or there is a lot of data to write, keep checking for arrival of new data
-//        gnss.checkUblox();
-//        gnss.checkCallbacks();
-//        digitalWrite(LED_BUILTIN, LOW);
-//    }
-//
-//    if (millis() > (lastPrint+1000)) {
-//        Serial.print("Number of message groups received: SFRBX: ");
-//        Serial.print(numSFRBX);
-//        Serial.print(" RAWX: ");
-//        Serial.print(numRAWX);
-//
-//        uint16_t maxBufferBytes = gnss.getMaxFileBufferAvail();
-//
-//        if (maxBufferBytes > ((gnssFileBufferSize / 5) * 4)) {
-//            Serial.println("WARNING: the file buffer has been over 80% full. Some data may have been lost.");
-//        }
-//        lastPrint = millis();
-//    }
-//
-//    // Check if user wants to stop logging
-//    if (Serial.available()) {
-//        uint16_t remBytes = gnss.fileBufferAvailable();
-//
-//        while (remBytes > 0) {
-//            digitalWrite(LED_BUILTIN, HIGH);
-//
-//            uint16_t  bytesWrite = remBytes;
-//            if (bytesWrite > sdWriteSize) {
-//                bytesWrite = sdWriteSize;
-//            }
-//
-//            gnss.extractFileBufferData(gnssBuffer, bytesWrite);
-//
-//            gnssFile.write(gnssBuffer, bytesWrite);
-//
-//            remBytes -= bytesWrite;
-//        }
-//
-//        digitalWrite(LED_BUILTIN, LOW);
-//
-//        gnssFile.close();
-//
-//        Serial.println("Logging stopped.");
-//        while(1);
-//    }
+    unsigned long idleTime = startTime - bufferTime;
+
+    // Write only when no char coming from GPS
+    if (idleTime < IDLE_THRESHOLD || GPSBuffer.length() < 3) {return;}
+
+//    Serial.println("[DEBUG] Starting.");
+//    Serial.print(GPSBuffer);
+
+    GPSActive = getDateTime(GPSBuffer.c_str(), dateTime);
+    if (!GPSActive) {return;}
+
+    getBasename(basename, dateTime, GPSActive);
+
+}
+
+bool initSD() {
+    if (!SD.begin(SDcard)) {
+        Serial.println("[ERROR] Unable to initialise SD Card");
+        return false;
+    }
+
+    return true;
+}
+
+void getBasename(char basename[], const char dateTime[], bool GPSActive) {
+    if (!GPSActive) {
+        // Use default filename
+        strncpy(basename, basenameDefault, strlen(basenameDefault)+1);
+        return;
+    }
+
+    // Copys the first 6 char from dateTime into basename
+    strncpy(basename, dateTime, 6);
+    basename[6]='\0';
+
+    Serial.println("[DEBUG] Using filename: " + String(basename));
+}
+
+void GPSSerialEvent() {
+    char c = GPSSerial.read();
+    GPSBuffer += c;
+    bufferTime = millis();
+}
+
+bool getDateTime(const char stringOriginal[], char dateTimeOut[]) {
+    char strTemp[82];
+    char* limInf = NULL;
+    char* limSup = NULL;
+    const char *dateIn;
+    const char *timeIn;
+    int len;
+
+    if (strlen(stringOriginal)==0) {
+        Serial.println("[DEBUG] empty GPS string.");
+        return false;
+    }
+
+    limInf = strstr(stringOriginal, "$GNRMC");
+
+    if (!limInf) {
+        Serial.println("[DEBUG] $GNRMC not found!");
+        return false;
+    }
+
+    if ((limInf[17]!='A')) {
+        Serial.println("[DEBUG] $GNRMC not found");
+        return false;
+    }
+
+    // find end of $GPRMC sentence:
+    limSup=strchr(limInf, '\n');
+    len=(limSup-limInf)+1;
+    strncpy(strTemp, limInf, min(len, sizeof(strTemp)-1));
+    strTemp[len]='\0';
+
+    // extract date, reordering components (DDMMYY -> YYMMDD):
+    Serial.println(strTemp);
+    dateIn = nth_strchr(strTemp, ',', 9) + 1;
+    dateTimeOut[0] = dateIn[4];  // year
+    dateTimeOut[1] = dateIn[5];  // year
+    dateTimeOut[2] = dateIn[2];  // month
+    dateTimeOut[3] = dateIn[3];  // month
+    dateTimeOut[4] = dateIn[0];  // day
+    dateTimeOut[5] = dateIn[1];  // day
+
+    // extract time, keeping the order (hhmmss):
+    timeIn = &strTemp[7];
+    strncpy(&dateTimeOut[6], timeIn, 6);
+
+    // terminate string:
+    dateTimeOut[12]='\0';
+    Serial.println("[DEBUG] dateTime: " + String(dateTimeOut));
+
+    return true;
+}
+
+// returns a pointer to the nth character in a string:
+const char* nth_strchr(const char* s, int c, int n)
+{
+    int c_count;
+    char* nth_ptr;
+
+    for (c_count=1,nth_ptr=strchr(s,c);
+         nth_ptr != NULL && c_count < n && c!=0;
+         c_count++)
+    {
+        nth_ptr = strchr(nth_ptr+1, c);
+    }
+
+    return nth_ptr;
 }
