@@ -28,7 +28,7 @@ jobs:
 
       - name: Commit changes
         run: |
-          git add tutorial_pdf/index.pdf
+          git add .
           git commit -m "Build latest tutorial PDF"
 
       - name: Push changes
