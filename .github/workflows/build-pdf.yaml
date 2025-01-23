@@ -3,9 +3,10 @@ on:
   push:
     branches:
       - "main"
-    paths:
-      - "tutorial/**.md"
-      - "tutorial/images/**"
+#    paths:
+#      - "tutorial/**.md"
+#      - "tutorial/images/**"
+
 permissions:
   contents: write
 jobs:
