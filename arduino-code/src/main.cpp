@@ -26,10 +26,11 @@ char basenameOld[MAX_BASNAME_LEN];
 bool initSD();
 void getBasename(char basename[], const char dateTime[], bool GPSActive);
 bool getDateTime(const char stringOriginal[], char dateTimeOut[]);
+void datalog(const char basename[]);
 const char* nth_strchr(const char* s, int c, int n);
 
 void setup() {
-    Serial.begin(9600);
+//    Serial.begin(9600);
 
     initSD();
 
@@ -54,19 +55,60 @@ void loop() {
 //    Serial.print(GPSBuffer);
 
     GPSActive = getDateTime(GPSBuffer.c_str(), dateTime);
-    if (!GPSActive) {return;}
+    if (!GPSActive) {
+        GPSBuffer = "";
+        GPSBuffer.reserve(GPS_BUFFER_SIZE);
+        return;
+    }
 
     getBasename(basename, dateTime, GPSActive);
+
+    datalog(basename);
+
+//    if (strcmp(basename, basenameOld) != 0) {
+//        strncpy(basenameOld, basename, strlen(basename)+1);
+//        numBlk = 0;
+//    }
+//    numBlk++;
+//    Serial.println("[DEBUG] number of blocks: " + String(numBlk));
+
+    GPSBuffer = "";
+    GPSBuffer.reserve(GPS_BUFFER_SIZE);
 
 }
 
 bool initSD() {
     if (!SD.begin(SDcard)) {
-        Serial.println("[ERROR] Unable to initialise SD Card");
+//        Serial.println("[ERROR] Unable to initialise SD Card");
         return false;
     }
 
     return true;
+}
+
+void datalog(const char basename[]) {
+    char filename[MAX_FILENAME_LEN];
+    strncpy(filename, basename, strlen(basename)+1);
+    strcat(filename, ".log");
+//    Serial.println("[DEBUG] filename (GPS): " + String(filename));
+
+    File file = SD.open(filename, FILE_WRITE);
+    if (!file) {
+//        Serial.println("[ERROR] Unable to open file: " + String(filename));
+        return;
+    }
+    // Size of buffer so we can check it has all been written
+    byte len1 = GPSBuffer.length();
+
+    byte len2 = file.print(GPSBuffer);
+
+    file.println();
+    file.close();
+
+    String prefix = "[DEBUG]";
+    if (len1 != len2) {prefix = "[ERROR]";}
+
+//    Serial.println(prefix + " " + (100*len2/len1) + "%" + " of " + String(len1) + " bytes written to SD file '" + String(filename) + "'");
 }
 
 void getBasename(char basename[], const char dateTime[], bool GPSActive) {
@@ -80,7 +122,7 @@ void getBasename(char basename[], const char dateTime[], bool GPSActive) {
     strncpy(basename, dateTime, 6);
     basename[6]='\0';
 
-    Serial.println("[DEBUG] Using filename: " + String(basename));
+//    Serial.println("[DEBUG] Using filename: " + String(basename));
 }
 
 void GPSSerialEvent() {
@@ -98,19 +140,19 @@ bool getDateTime(const char stringOriginal[], char dateTimeOut[]) {
     int len;
 
     if (strlen(stringOriginal)==0) {
-        Serial.println("[DEBUG] empty GPS string.");
+//        Serial.println("[DEBUG] empty GPS string.");
         return false;
     }
 
     limInf = strstr(stringOriginal, "$GNRMC");
 
     if (!limInf) {
-        Serial.println("[DEBUG] $GNRMC not found!");
+//        Serial.println("[DEBUG] $GNRMC not found!");
         return false;
     }
 
     if ((limInf[17]!='A')) {
-        Serial.println("[DEBUG] $GNRMC not found");
+//        Serial.println("[DEBUG] $GNRMC not found");
         return false;
     }
 
@@ -121,7 +163,6 @@ bool getDateTime(const char stringOriginal[], char dateTimeOut[]) {
     strTemp[len]='\0';
 
     // extract date, reordering components (DDMMYY -> YYMMDD):
-    Serial.println(strTemp);
     dateIn = nth_strchr(strTemp, ',', 9) + 1;
     dateTimeOut[0] = dateIn[4];  // year
     dateTimeOut[1] = dateIn[5];  // year
@@ -136,7 +177,7 @@ bool getDateTime(const char stringOriginal[], char dateTimeOut[]) {
 
     // terminate string:
     dateTimeOut[12]='\0';
-    Serial.println("[DEBUG] dateTime: " + String(dateTimeOut));
+//    Serial.println("[DEBUG] dateTime: " + String(dateTimeOut));
 
     return true;
 }
