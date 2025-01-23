@@ -25,7 +25,7 @@ Download the latest version of the Arduino IDE from here: https://www.arduino.cc
 Then open arduino settings and add the following URL under "Additional boards manager URLs": https://adafruit.github.io/arduino-board-index/package_adafruit_index.json and click "OK". If you already have an URL in the board manager add a comma at the end and then paste the URL.
 
 <div style="display: flex; align-items: flex-start;">
-    <img src=".images/arduino-settings.png" alt="Image 1" style="max-width: 512px; height: auto;"/>
-    <img src=".images/arduino-board-manager.png" alt="Image 2" style="max-width: 512px; height: auto; margin-left: 10px;"/>
+    <img src="./images/arduino-settings.png" alt="Image 1" style="max-width: 512px; height: auto;"/>
+    <img src="./images/arduino-board-manager.png" alt="Image 2" style="max-width: 512px; height: auto; margin-left: 10px;"/>
 </div>
 
