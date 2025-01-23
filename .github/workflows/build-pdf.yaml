@@ -1,0 +1,26 @@
+name: Build Tutorial PDF
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "tutorial/**.md"
+      - "tutorial/images/**.md"
+
+jobs:
+  converttopdf:
+    - name: Markdown to PDF and HTML
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v3
+        - uses: BaileyJM02/markdown-to-pdf@v1.2.0
+          with:
+            input_dir: tutorial
+            output_dir: tutorial_pdf
+            images_dir: tutorial/images
+            image_import: ./images
+            build_html: false
+        - uses: actions/upload-artifact@v3
+          with:
+            name: tutorial-gnss-r-latest
+            path: tutorial_pdf
