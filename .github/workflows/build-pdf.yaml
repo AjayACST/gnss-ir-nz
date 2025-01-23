@@ -19,7 +19,7 @@ jobs:
         with:
           input_dir: tutorial
           output_dir: tutorial_pdf
-          images_dir: images
+          images_dir: tutorial/images
           image_import: ./images
           build_html: false
       - name: Config GIT
