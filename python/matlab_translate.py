@@ -49,10 +49,10 @@ naz = round(360/az_range)
 
 # TODO: implement for loop, testing is fine to just do this once
 
-azim1 = 210
+azim1 = 230
 azim2 = 360
 
-gnss_data = readGPS("../data/TESTING.LOG", True)
+gnss_data = readGPS("../data/250125.LOG", True)
 
 for prn, group in gnss_data.groupby(level='prn'):
     el = np.array(group.el)
