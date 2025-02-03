@@ -22,13 +22,11 @@ The parts list can be found on DigiKey here: https://www.digikey.co.nz/en/mylist
 ## 1.1 Arduino IDE Setup
 Download the latest version of the Arduino IDE from here: https://www.arduino.cc/en/software
 
-Then open arduino settings and add the following URL under "Additional boards manager URLs": https://adafruit.github.io/arduino-board-index/package_adafruit_index.json and click "OK". If you already have an URL in the board manager add a comma at the end and then paste the URL.
+The first thing to do is install the board group from the Board Manager. To do this click the second icon in the sidebar and search for "Arduino SAMD". The board group you want to install is called "Arduino SAMD Boards (32-bits ARM Cortex-M0+)", install the latest version of this.
 
-<div style="display: flex; align-items: flex-start;">
-    <img src="./images/arduino-settings.png" alt="Arduino IDE settings menu." style="max-width: 512px; height: auto;"/>
-    <img src="./images/arduino-board-manager.png" alt="Arduino Settings window showing where to put board URL." style="max-width: 512px; height: auto; margin-left: 10px;"/>
-</div>
+<img src="./images/arduino-board-install.png" height="350" alt="Arduino SAMD Board to group to install">
 
-Once you have installed the board JSON file you can now install the board group from the Board Manager. To do this click the second icon in the sidebar and search for "Adafruit SAMD". The board group you want to install is called "Adafruit SAMD Boards by Adafruit-", install the latest version of this.
+You can then install the library that we will need for this project. We will need the MKRNB library which handles communication between the cellular network and our device.
+To do this click the library icon below the boards manager and search for MKRNB and install it.
 
-<img src="./images/arduino-board-install.png" height="350" alt="Adafruit SAMD Board to group to install">
+<img src="./images/arduino-library-install.png" height="350" alt="MKRNB library to install">
