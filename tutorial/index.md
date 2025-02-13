@@ -27,7 +27,7 @@ Based on Fagundes, M.A.R., Mendonça-Tinti, I., Iescheck, A.L. et al. An open-so
   - [4.2 Serial Monitor](#42-serial-monitor)
   - [4.3 Data Files](#43-data-files)
 # Parts
-The parts list can be found here: https://github.com/AjayACST/grss-ir-nz/tree/main/tutorial/parts-list.xlsx
+The parts list can be found here: [Parts List Excel File](https://github.com/AjayACST/grss-ir-nz/tree/main/tutorial/parts-list.xlsx)
 
 # 1. Preparing Arduino
 You will need:
