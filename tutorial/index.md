@@ -7,7 +7,7 @@
 - [Delwyn Moller](mailto:delwyn.moller@auckland.ac.nz)
 - [Brain Pollard](mailto:bpollard@restorelab.co.nz)
 
-Last updated on the 24th of January 2025
+Last updated on the 14th of February 2025
 
 Based on Fagundes, M.A.R., Mendonça-Tinti, I., Iescheck, A.L. et al. An open-source low-cost sensor for SNR-based GNSS reflectometry: design and long-term validation towards sea-level altimetry. GPS Solut 25, 73 (2021). https://doi.org/10.1007/s10291-021-01087-1
 
@@ -27,12 +27,13 @@ Based on Fagundes, M.A.R., Mendonça-Tinti, I., Iescheck, A.L. et al. An open-so
   - [4.2 Serial Monitor](#42-serial-monitor)
   - [4.3 Data Files](#43-data-files)
 # Parts
-The parts list can be found on DigiKey here: https://www.digikey.co.nz/en/mylists/list/PICEBQ9ABU
+The parts list can be found here: https://github.com/AjayACST/grss-ir-nz/tree/main/tutorial/parts-list.xlsx
 
 # 1. Preparing Arduino
 You will need:
 1. Arduino MKR NB 1500
 2. Micro SD Card
+
 ## 1.1 Arduino IDE Setup
 Download the latest version of the Arduino IDE from here: https://www.arduino.cc/en/software
 
