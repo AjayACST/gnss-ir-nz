@@ -87,7 +87,9 @@ You will need:
 4. Jumper Wires
 5. GNSS Antenna
 
-To connect the GPS Module to the Arduino you will first need to solder the header pins to the GPS Module. To do this cut the header pins to the correct length and solder them to the GPS Module. The pins should be soldered to the empty row that is on the USB port side of the PCB. Follow the same steps as before for the SD Shield to solder the pins to the GPS module. Cut to length, put in breadboard, and solder.
+To connect the GPS Module to the Arduino you will first need to solder the header pins to the GPS Module. To do this cut the header pins to the correct length and solder them to the GPS module. The pins should be
+soldered to the empty row that is on the USB port side of the PCB.
+Then put the header pins into the breadboard so that the longer side of the pins goes into the breadboard, then place the SD Shield on top of the header pins. You can then solder the header pins to the SD Shield.
 
 <span style="color:red">Add photo in here from building one of our test ones for the soldering</span>
 
