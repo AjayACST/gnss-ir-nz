@@ -9,7 +9,9 @@
 
 Last updated on the 14th of February 2025
 
-Based on Fagundes, M.A.R., Mendonça-Tinti, I., Iescheck, A.L. et al. An open-source low-cost sensor for SNR-based GNSS reflectometry: design and long-term validation towards sea-level altimetry. GPS Solut 25, 73 (2021). https://doi.org/10.1007/s10291-021-01087-1
+Based on Fagundes, M.A.R., Mendonça-Tinti, I., Iescheck, A.L. et al. An open-source low-cost sensor for SNR-based GNSS
+reflectometry: design and long-term validation towards sea-level altimetry. GPS Solut 25, 73 (2021).
+https://doi.org/10.1007/s10291-021-01087-1
 
 ## Table of Contents
 - [Parts](#parts)
@@ -37,26 +39,34 @@ You will need:
 ## 1.1 Arduino IDE Setup
 Download the latest version of the Arduino IDE from here: https://www.arduino.cc/en/software
 
-The first thing to do is install the board group from the Board Manager. To do this click the second icon in the sidebar and search for "Arduino SAMD". The board group you want to install is called "Arduino SAMD Boards (32-bits ARM Cortex-M0+)", install the latest version of this.
+The first thing to do is install the board group from the Board Manager. To do this click the second icon in the sidebar
+and search for "Arduino SAMD". The board group you want to install is called "Arduino SAMD Boards (32-bits ARM Cortex-M0+)",
+install the latest version of this.
 
 <img src="./images/arduino-board-install.png" height="350" alt="Arduino SAMD Board to group to install">
 
-You can then install the library that we will need for this project. We will need the MKRNB library which handles communication between the cellular network and our device.
-To do this click the library icon below the boards manager and search for MKRNB and install it.
+You can then install the library that we will need for this project. We will need the MKRNB library which handles
+communication between the cellular network and our device. To do this click the library icon below the boards manager
+and search for MKRNB and install it.
 
 <img src="./images/arduino-library-install.png" height="350" alt="MKRNB library to install">
 
 ## 1.2 Format the SD Card
 
-Before you can use the SD card with the Arduino you will need to format it. The link below has instructions on how to do this for both Windows and MacOS. Ensure that the SD card is formatted as FAT32 so that the Arduino can read it.
+Before you can use the SD card with the Arduino you will need to format it. The link below has instructions on how to do
+this for both Windows and MacOS. Ensure that the SD card is formatted as FAT32 so that the Arduino can read it.
 https://support.garmin.com/en-NZ/?faq=QqSbC0YZTz57kLm7uRQxZ7
 
 ## 1.3 Uploading the Firmware
 
-Now that we have the board group and library installed we can upload the firmware to the Arduino. To do this create a new sketch and copy the code found <a href="https://github.com/AjayACST/grss-ir-nz/blob/main/arduino-code/src/main.cpp">here</a> into the sketch.
+Now that we have the board group and library installed we can upload the firmware to the Arduino. To do this create a
+new sketch and copy the code found <a href="https://github.com/AjayACST/grss-ir-nz/blob/main/arduino-code/src/main.cpp">here</a>
+into the sketch.
 
-Now plug the Arduino into your computer and select the board group that we installed earlier. Then select the board from the board selector beside the upload button. It should be indicated as "Arduino MKR NB 1500". If it is not go to Tools -> Board -> Arduino SAMD Boards (32-bits ARM Cortex-M0+) and select the Arduino MKR NB 1500.
-You can then click the Upload button, Right Arrow Icon, to upload the firmware to the Arduino.
+Now plug the Arduino into your computer and select the board group that we installed earlier. Then select the board
+from the board selector beside the upload button. It should be indicated as "Arduino MKR NB 1500". If it is not go to
+Tools -> Board -> Arduino SAMD Boards (32-bits ARM Cortex-M0+) and select the Arduino MKR NB 1500. You can then click
+the Upload button, Right Arrow Icon, to upload the firmware to the Arduino.
 
 # 2. Connecting the Electronics
 
@@ -68,12 +78,16 @@ You will need:
 4. Header Pins
 5. Breadboard
 
-First you will need to solder the header pins to the MKR SD Shield. To do this cut the header pins to the correct length and solder them to the shield. The pins should be soldered to the two rows of holes on either side of the shield lengthwise.
-Then put the header pins into the breadboard so that the longer side goes into the breadboard, then place the SD Shield on top of the header pins. You can then solder the header pins to the SD Shield.
+First you will need to solder the header pins to the MKR SD Shield. To do this cut the header pins to the correct length
+and solder them to the shield. The pins should be soldered to the two rows of holes on either side of the shield
+lengthwise. Then put the header pins into the breadboard so that the longer side goes into the breadboard, then place
+the SD Shield on top of the header pins. You can then solder the header pins to the SD Shield.
 
 <span style="color:red">Add photo in here from building one of our test ones for the soldering</span>
 
-Once you have soldered the header pins to the SD Shield you can plug the SD Shield into the Arduino. The pins should line up with the headers on the Arduino. The SD Shield should be plugged into the Arduino so that the SD card slot is facing away from the USB port on the Arduino.
+Once you have soldered the header pins to the SD Shield you can plug the SD Shield into the Arduino. The pins should
+line up with the headers on the Arduino. The SD Shield should be plugged into the Arduino so that the SD card slot is
+facing away from the USB port on the Arduino.
 
 Then insert the SD card into the SD Shield.
 
@@ -87,15 +101,27 @@ You will need:
 4. Jumper Wires
 5. GNSS Antenna
 
-To connect the GPS Module to the Arduino you will first need to solder the header pins to the GPS Module. To do this cut the header pins to the correct length and solder them to the GPS module. The pins should be
+To connect the GPS Module to the Arduino you will first need to solder the header pins to the GPS Module. To do this cut
+the header pins to the correct length and solder them to the GPS module. The pins should be
 soldered to the empty row that is on the USB port side of the PCB.
-Then put the header pins into the breadboard so that the longer side of the pins goes into the breadboard, then place the SD Shield on top of the header pins. You can then solder the header pins to the SD Shield.
+Then put the header pins into the breadboard so that the longer side of the pins goes into the breadboard, then place
+the SD Shield on top of the header pins. You can then solder the header pins to the SD Shield.
 
-<span style="color:red">Add photo in here from building one of our test ones for the soldering</span>
+<img src="./images/solder-neo-m9n.jpeg" height="512" alt="NEO-M9N GPS Module with header pins soldered on.">
 
-Once it has been soldered you can plug the GPS Module and Arduino into the breadboard. To do this place the Arduino on one end of the breadboard and the GPS module on the other end. Ensuring that none of the pins from the GPS Module are connected to the same tracks that the Arduino is on. You can then connect the two devices using jumper wires.
+Once you have soldered the pins to the GPS module, you can now build the Arduino stack. To do this simply line the pins
+up on the SD shield to the pins on the NB 1500 and push them together. The pins should line up with the headers on the
+Arduino as shown below. As a general guide the SD card slot should face away from the micro USB port on the Arduino.
 
-<span style="color:red">Show photo of bad connection, e.g. arduino and GPS on same traces, and show photo of good connection</span>
+<img src="./images/arduino-stack.jpeg" height="512" alt="MKR SD Shield stacked ontop of the MKR NB 1500.">
+
+Once it has been soldered you can plug the GPS Module and Arduino into the breadboard. To do this place the Arduino on
+one end of the breadboard and the GPS module on the other end. Ensuring that none of the pins from the GPS Module are
+connected to the same tracks that the Arduino is on. You can then connect the two devices using jumper wires.
+
+|                                                  Bad Placement                                                  |                                                  Good Placement                                                   |
+|:---------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------:|
+| <img src="./images/gps-placement-bad.jpeg" height="512" alt="NEO-M9N GPS Module and Arduino stack placed bad."> | <img src="./images/gps-placement-good.jpeg" height="512" alt="NEO-M9N GPS Module and Arduino stack placed good."> |
 
 The connections are as follows:
 - GPS Module VCC -> Arduino 3.3V
@@ -103,7 +129,8 @@ The connections are as follows:
 - GPS Module RX -> Arduino TX
 - GPS Module TX -> Arduino RX
 
-You can then connect the GNSS Antenna to the GPS Module. To do this plug the GNSS Antenna into the SMA connector on the GPS Module. This is the big gold connector on the side of the board, to connect it simply screw the antenna onto the connector.
+You can then connect the GNSS Antenna to the GPS Module. To do this plug the GNSS Antenna into the SMA connector on the
+GPS Module. This is the big gold connector on the side of the board, to connect it simply screw the antenna onto the connector.
 
 <span style="color:red">Add in info about sim card needed.</span>
 
@@ -119,14 +146,19 @@ You can then connect the GNSS Antenna to the GPS Module. To do this plug the GNS
 
 # 4. Testing the system
 ## 4.1 Activity LEDs
-There is a red LED on the Arduino that will blink every time data is written to the SD card. Ensure that this is flashing to make sure that data is saved.
-There is also a LED on the GPS module that will blink once a second when it has a fix. This means that it has a connection to the satellites and is ready to record data. The red LED on the arduino will only start to blink once the GPS module has a fix.
+There is a red LED on the Arduino that will blink every time data is written to the SD card. Ensure that this is
+flashing to make sure that data is saved. There is also a LED on the GPS module that will blink once a second when it
+has a fix. This means that it has a connection to the satellites and is ready to record data. The red LED on the arduino
+will only start to blink once the GPS module has a fix.
 
 <span style="color:red">Add photo highlighting these LEDs</span>
 
 ## 4.2 Serial Monitor
 
-You can also check that the NMEA sentences look correct through the serial monitor. To do this follow the steps for plugging the arduino into the computer from [1.3 Uploading the Firmware](#13-uploading-the-firmware). Then open the serial monitor by clicking the magnifying glass icon in the top right of the Arduino IDE. The baud rate should be set to 9600.
+You can also check that the NMEA sentences look correct through the serial monitor. To do this follow the steps for
+plugging the arduino into the computer from [1.3 Uploading the Firmware](#13-uploading-the-firmware).
+Then open the serial monitor by clicking the magnifying glass icon in the top right of the Arduino IDE. The baud rate
+should be set to 9600.
 
 <span style="color:red">Add photo of serial monitor showing NMEA sentences</span>
 
@@ -135,7 +167,8 @@ The files that are saved to the SD Card will have an .log extension. The file na
 
 <img src="./images/log-file-example.png" alt="Example of LOG files.">
 
-Where the first two digits are the year, the second two digits are the month, and the last two digits are the day. This date is in UTC.
+Where the first two digits are the year, the second two digits are the month, and the last two digits are the day.
+This date is in UTC.
 
 The data in the file should look like the below example
 
