@@ -22,7 +22,8 @@ https://doi.org/10.1007/s10291-021-01087-1
 - [2. Connecting the Electronics](#2-connecting-the-electronics)
   - [2.1 Connecting the Arduino and SD Shield](#21-connecting-the-arduino-and-sd-shield)
   - [2.2 Connecting the Arduino and GPS Module](#22-connecting-the-arduino-and-gps-module)
-  - [2.3 Preparing the Power System](#23-preparing-the-power-system)
+  - [2.3 Cellular Connection](#23-cellular-connection)
+  - [2.4 Preparing the Power System](#24-preparing-the-power-system)
 - [3. Mounting the system](#3-mounting-the-system)
 - [4. Testing the system](#4-testing-the-system)
   - [4.1 Activity LEDs](#41-activity-leds)
@@ -78,20 +79,11 @@ You will need:
 4. Header Pins
 5. Breadboard
 
-First you will need to solder the header pins to the MKR SD Shield. To do this cut the header pins to the correct length
-and solder them to the shield. The pins should be soldered to the two rows of holes on either side of the shield
-lengthwise. Then put the header pins into the breadboard so that the longer side goes into the breadboard, then place
-the SD Shield on top of the header pins. You can then solder the header pins to the SD Shield.
+Start by plugging the SD Shield into the Arduino. To do this simply line the pins
+up on the SD shield to the pins on the NB 1500 and push them together. The pins should line up with the headers on the
+Arduino as shown below. As a general guide the SD card slot should face away from the micro USB port on the Arduino.
 
-<span style="color:red">Add photo in here from building one of our test ones for the soldering</span>
-
-Once you have soldered the header pins to the SD Shield you can plug the SD Shield into the Arduino. The pins should
-line up with the headers on the Arduino. The SD Shield should be plugged into the Arduino so that the SD card slot is
-facing away from the USB port on the Arduino.
-
-Then insert the SD card into the SD Shield.
-
-<span style="color:red">Add photo in here from building one of our test ones for the completed package.</span>
+<img src="./images/arduino-stack.jpeg" height="512" alt="MKR SD Shield stacked ontop of the MKR NB 1500.">
 
 ## 2.2 Connecting the Arduino and GPS Module
 You will need:
@@ -109,19 +101,13 @@ the SD Shield on top of the header pins. You can then solder the header pins to 
 
 <img src="./images/solder-neo-m9n.jpeg" height="512" alt="NEO-M9N GPS Module with header pins soldered on.">
 
-Once you have soldered the pins to the GPS module, you can now build the Arduino stack. To do this simply line the pins
-up on the SD shield to the pins on the NB 1500 and push them together. The pins should line up with the headers on the
-Arduino as shown below. As a general guide the SD card slot should face away from the micro USB port on the Arduino.
-
-<img src="./images/arduino-stack.jpeg" height="512" alt="MKR SD Shield stacked ontop of the MKR NB 1500.">
-
 Once it has been soldered you can plug the GPS Module and Arduino into the breadboard. To do this place the Arduino on
 one end of the breadboard and the GPS module on the other end. Ensuring that none of the pins from the GPS Module are
 connected to the same tracks that the Arduino is on. You can then connect the two devices using jumper wires.
 
 |                                                  Bad Placement                                                  |                                                  Good Placement                                                   |
 |:---------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------:|
-| <img src="./images/gps-placement-bad.jpeg" height="512" alt="NEO-M9N GPS Module and Arduino stack placed bad."> | <img src="./images/gps-placement-good.jpeg" height="512" alt="NEO-M9N GPS Module and Arduino stack placed good."> |
+| <img src="./images/gps-placement-bad.jpeg" height="350" alt="NEO-M9N GPS Module and Arduino stack placed bad."> | <img src="./images/gps-placement-good.jpeg" height="350" alt="NEO-M9N GPS Module and Arduino stack placed good."> |
 
 The connections are as follows:
 - GPS Module VCC -> Arduino 3.3V
@@ -132,11 +118,23 @@ The connections are as follows:
 You can then connect the GNSS Antenna to the GPS Module. To do this plug the GNSS Antenna into the SMA connector on the
 GPS Module. This is the big gold connector on the side of the board, to connect it simply screw the antenna onto the connector.
 
-<span style="color:red">Add in info about sim card needed.</span>
 
+## 2.3 Cellular Connection
+
+
+<span style="color:red">Add in info about how to get sim card</span>
+
+To start break the first layer of the sim card off so that you are left with the second-biggest size, the Micro Size.
+Then plug the sim card into the sim card slot on the back of the Arduino. The sim card slot is on the back of the board
+at the opposite end to the micro USB port. The sim card should be inserted with the gold contacts facing up.
+
+Then plug the Laird antenna into the U.FL connector on the Arduino. This is the small circle connector on the front of
+the board, above the Sim card slot. This connector can be a bit tricky to plug in, so be careful when plugging it in. It
+can also come out easily so we would recommend using a small amount of hot glue or tape to hold it in place once you have
+confirmed that everything is working.
 <span style="color:red">Add photo of completed board</span>
 
-## 2.3 Preparing the Power System
+## 2.4 Preparing the Power System
 
 <span style="color:red">Euan to write or give information for me to write this up</span>
 
