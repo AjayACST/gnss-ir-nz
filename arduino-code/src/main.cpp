@@ -29,11 +29,13 @@
 #define MAX_BASENAME_LEN (8+1) // FAT limit 8.3, +1 for \0 char
 #define MAX_FILENAME_LEN (MAX_BASENAME_LEN + 1 + 3) // basename + dot + extension
 
+#define DEBUG // if defined will output debug messages to Serial
+
+#define GPS_ACTIVE // if defined will wait for active GPS before writing
+
 unsigned long bufferTime = millis();
 
 String gpsBuffer = ""; // holds incoming NMEA sentences
-
-#define DEBUG
 
 void setup() {
     // Initialize serial and GPS serial
@@ -45,16 +47,17 @@ void setup() {
     initProperties();
 
     // Connect to Arduino IoT Cloud
-    ArduinoCloud.begin(ArduinoIoTPreferredConnection, false);
-
-    setDebugMessageLevel(2);
-    ArduinoCloud.printDebugInfo();
+    // ArduinoCloud.begin(ArduinoIoTPreferredConnection, false);
+    //
+    // setDebugMessageLevel(2);
+    // ArduinoCloud.printDebugInfo();
 
     // Setup sd card
     initSD();
 }
 
 void loop() {
+    read_serial();
     bool GPSActive;
     char dateTime[6+6+1]; //yyyymmDDHHMMSS\0
     char basename[MB_LEN_MAX];
@@ -70,7 +73,7 @@ void loop() {
 
     GPSActive = getDateTime(gpsBuffer.c_str(), dateTime);
     // ArduinoCloud.push();
-
+    gpsBuffer = "";
 }
 
 /*
@@ -91,13 +94,49 @@ bool initSD() {
 
 
 bool getDateTime(const char stringOriginal[], char dateTime[]) {
+    char strTemp[82];
+    char *gnrmc_str = nullptr;
+    char *gnrmc_end = nullptr;
 
+    const char *dateIn;
+    const char *timeIn;
+    int len;
+
+    if (strlen(stringOriginal) == 0) {
+#ifdef DEBUG
+        Serial.println("[DEBUG] Empty string");
+#endif
+        return false;
+
+    }
+    gnrmc_str = strstr(stringOriginal, "$GNRMC");
+    if (!gnrmc_str) {
+#ifdef DEBUG
+        Serial.println("[DEBUG] $GNRMC NMEA sentence not found!");
+#endif
+        return false;
+    }
+    if (gnrmc_str[17] != 'A') {
+#ifdef DEBUG
+        Serial.println("[DEBUG] GPS is not active yet!");
+#endif
+        return false;
+    }
+
+    gnrmc_end = strchr(gnrmc_str, '\n');
+    len = (gnrmc_end - gnrmc_str) + 1;
+    strncpy(strTemp, gnrmc_str, min(len, sizeof(strTemp)-1));
+    strTemp[len] = '\0';
+
+    dateIn = nth_strchr(strTemp, ',', 9) + 1;
 }
 
 ///
 /// Runs inbetween loops everytime a new character is available at Serial1
-void serialEvent1() {
-    char c = Serial1.read();
-    gpsBuffer += c;
-    bufferTime = millis();
+void read_serial() {
+    while (Serial1.available()) {
+        const char c = Serial1.read();
+        gpsBuffer += c;
+        bufferTime = millis();
+    }
 }

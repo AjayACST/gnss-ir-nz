@@ -21,6 +21,7 @@ void datalog(const char basename[]);
 void getBasename(char basename[], const char dateTime[], bool GPSActive);
 bool getDateTime(const char stringOriginal[], char dateTime[]);
 const char* nth_strchr(const char*s, int c, int n);
+void read_serial();
 
 String nMEAStrings;
 
