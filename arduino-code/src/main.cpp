@@ -33,9 +33,16 @@
 
 #define GPS_ACTIVE // if defined will wait for active GPS before writing
 
+#define  GPS_BUFFER_SIZE_TYPICAL 512  // typical buffer size, for pre-allocation
+
 unsigned long bufferTime = millis();
 
 String gpsBuffer = ""; // holds incoming NMEA sentences
+char basenameOld[MAX_BASENAME_LEN];
+
+String fake_nmea_string = "$GNRMC,000043.00,A,4442.69837,S,16910.92656,E,0.012,,250125,,,D,V*0D\n$GPGSV,4,1,15,05,20,115,42,10,18,287,42,13,35,126,40,15,62,095,44,1*6B";
+
+int current_i = 0;
 
 void setup() {
     // Initialize serial and GPS serial
@@ -47,10 +54,10 @@ void setup() {
     initProperties();
 
     // Connect to Arduino IoT Cloud
-    // ArduinoCloud.begin(ArduinoIoTPreferredConnection, false);
-    //
-    // setDebugMessageLevel(2);
-    // ArduinoCloud.printDebugInfo();
+    ArduinoCloud.begin(ArduinoIoTPreferredConnection, false);
+
+    setDebugMessageLevel(2);
+    ArduinoCloud.printDebugInfo();
 
     // Setup sd card
     initSD();
@@ -60,7 +67,7 @@ void loop() {
     read_serial();
     bool GPSActive;
     char dateTime[6+6+1]; //yyyymmDDHHMMSS\0
-    char basename[MB_LEN_MAX];
+    char basename[MAX_BASENAME_LEN];
     unsigned long startTime = millis();
 
     unsigned long idleTime = startTime - bufferTime;
@@ -72,8 +79,17 @@ void loop() {
     #endif
 
     GPSActive = getDateTime(gpsBuffer.c_str(), dateTime);
-    // ArduinoCloud.push();
+
+    getBasename(basename, dateTime, GPSActive);
+    datalog(basename);
+
+    // Check if we need to change basename
+    if (strcmp(basename, basenameOld) != 0) {
+        // File needs to be changed
+        strcpy(basenameOld, basename);
+    }
     gpsBuffer = "";
+    gpsBuffer.reserve(GPS_BUFFER_SIZE_TYPICAL);
 }
 
 /*
@@ -129,14 +145,102 @@ bool getDateTime(const char stringOriginal[], char dateTime[]) {
     strTemp[len] = '\0';
 
     dateIn = nth_strchr(strTemp, ',', 9) + 1;
+    dateTime[0] = dateIn[4];
+    dateTime[1] = dateIn[5];
+    dateTime[2] = dateIn[2];
+    dateTime[3] = dateIn[3];
+    dateTime[4] = dateIn[0];
+    dateTime[5] = dateIn[1];
+
+    // extract time, keeping the order (hhmmss)
+    timeIn = &strTemp[7];
+    strncpy(&dateTime[6], timeIn, 6);
+
+    dateTime[12] = '\n';
+#ifdef DEBUG
+    Serial.println("[DEBUG] GPS Date Time: " + String(dateTime));
+#endif
+    return true;
 }
 
-///
-/// Runs inbetween loops everytime a new character is available at Serial1
+void datalog(const char basename[]) {
+    char filename[MAX_FILENAME_LEN];
+    strncpy(filename, basename, MAX_BASENAME_LEN);
+    strcat(filename, ".log");
+
+#ifdef DEBUG
+    Serial.println("[DEBUG] Filename: " + String(filename));
+#endif
+
+    File file = SD.open(filename, FILE_WRITE);
+
+    if (!file) {
+        Serial.println("[ERROR] Failed to open file for writing. Filename: " + String(filename));
+        return;
+    }
+
+    // get size to check if all has been written
+    const byte len1 = gpsBuffer.length();
+    const byte len2 = file.println(gpsBuffer);
+    file.print("\n");
+
+    file.close();
+
+    if (len1 == len2) {
+        blink_led();
+        #ifdef DEBUG
+            Serial.println("[DEBUG] Written " + String(100*len2/len1) + "% of " + String(len1) + " bytes.");
+        #endif
+        return;
+    }
+    // Show anyway if error
+    Serial.println("[ERROR] Written " + String(100*len2/len1) + "% of " + String(len1) + " bytes.");
+}
+
+void getBasename(char basename[], const char dateTime[], bool gps_active) {
+    if (!gps_active) {
+        //use default basename
+        strcpy(basename, "DEFAULT");
+    }
+
+    strncpy(basename, dateTime, 8); //8 for YYMMDDhh
+    basename[8] = '\0';
+
+#ifdef DEBUG
+    Serial.println("[DEBUG] Basename: " + String(basename));
+#endif
+
+}
+
 void read_serial() {
     while (Serial1.available()) {
         const char c = Serial1.read();
-        gpsBuffer += c;
+        gpsBuffer += fake_nmea_string[current_i];
+        current_i++;
+        if (current_i >= fake_nmea_string.length()) {
+            current_i = 0;
+        }
         bufferTime = millis();
     }
+}
+
+void blink_led() {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(10);
+    digitalWrite(LED_BUILTIN, LOW);
+}
+
+const char* nth_strchr(const char* s, int c, int n)
+{
+    int c_count;
+    char* nth_ptr;
+
+    for (c_count=1,nth_ptr=strchr(s,c);
+         nth_ptr != nullptr && c_count < n && c!=0;
+         c_count++)
+    {
+        nth_ptr = strchr(nth_ptr+1, c);
+    }
+
+    return nth_ptr;
 }
