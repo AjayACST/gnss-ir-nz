@@ -23,6 +23,7 @@ bool getDateTime(const char stringOriginal[], char dateTime[]);
 const char* nth_strchr(const char*s, int c, int n);
 void read_serial();
 void blink_led();
+void push_iot(const char *basename);
 
 String nMEAStrings;
 
