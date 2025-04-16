@@ -5,13 +5,7 @@
 #ifndef THINGPROPERTIES_H
 #define THINGPROPERTIES_H
 
-#include <ArduinoIoTCloud.h>
-#include <Arduino_ConnectionHandler.h>
-
-const char GPRS_APN[]      = SECRET_OPTIONAL_APN;
-const char PINNUMBER[]     = SECRET_OPTIONAL_PIN;
-const char GPRS_LOGIN[]    = SECRET_OPTIONAL_USERNAME;
-const char GPRS_PASSWORD[] = SECRET_OPTIONAL_PASSWORD;
+#include <Arduino.h>
 
 void onNMEAStringsChange();
 
@@ -27,11 +21,5 @@ void push_iot(const char *basename);
 
 String nMEAStrings;
 
-void initProperties(){
-
-    ArduinoCloud.addProperty(nMEAStrings, READWRITE, ON_CHANGE, onNMEAStringsChange);
-}
-
-NBConnectionHandler ArduinoIoTPreferredConnection(PINNUMBER, GPRS_APN, GPRS_LOGIN, GPRS_PASSWORD);
 
 #endif //THINGPROPERTIES_H

@@ -1,8 +1,11 @@
 // ReSharper disable once CppUnusedIncludeDirective
-#include "arduino_secrets.h"
 
 #include "thingProperties.h"
 #include <SD.h>
+#include <MKRNB.h>
+
+#include "dropbox.h"
+
 
 #define GPS_BAUD_RATE 38400
 #define SERIAL_BAUD 9600
@@ -32,6 +35,10 @@ String fake_nmea_string = "$GNRMC,000043.00,A,4442.69837,S,16910.92656,E,0.012,,
 
 int current_i = 0;
 
+NBSSLClient client;
+GPRS gprs;
+NB nbAccess(true);
+
 void setup() {
     // Initialize serial and GPS serial
     Serial.begin(SERIAL_BAUD);
@@ -39,13 +46,19 @@ void setup() {
     // This delay gives the chance to wait for a Serial Monitor without blocking if none is found
     delay(1500);
 
-    initProperties();
+    // Connect to cell network
+    boolean connected = false;
+    while (!connected) {
+        if ((nbAccess.begin("", "m2m", "", "") == NB_READY) && (gprs.attachGPRS() == GPRS_READY)) {
+            connected = true;
+        } else {
+            Serial.println("Not connected to the network");
+            delay(1000);
+        }
+    }
+    Serial.println("Connected to the network!");
 
-    // Connect to Arduino IoT Cloud
-    ArduinoCloud.begin(ArduinoIoTPreferredConnection, false);
-
-    setDebugMessageLevel(2);
-    ArduinoCloud.printDebugInfo();
+    Dropbox dropbox("test", "test", client);
 
     // Setup sd card
     initSD();
@@ -55,8 +68,12 @@ void setup() {
 }
 
 void loop() {
-    push_iot("25012500");
-    delay(200000);
+    if (client.available()) {
+        char c = client.read();
+        Serial.print(c);
+    }
+    // push_iot("25012500");
+    // delay(200000);
     // read_serial();
     // bool GPSActive;
     // char dateTime[6+6+1]; //yyyymmDDHHMMSS\0
@@ -109,13 +126,17 @@ void push_iot(const char *basename) {
     File file = SD.open(filename, FILE_READ);
     if (file) {
         while (file.available()) {
-            nMEAStrings += static_cast<char>(file.read());
+            char c = file.read();
+            nMEAStrings += c;
+            if (c == '\n') {
+                Serial.println("Updating arduino cloud");
+                nMEAStrings = "";
+            }
         }
     } else {
         Serial.println("Not found file...");
     }
-    ArduinoCloud.update();
-    ArduinoCloud.push();
+    Serial.println(nMEAStrings);
     file.close();
 }
 
