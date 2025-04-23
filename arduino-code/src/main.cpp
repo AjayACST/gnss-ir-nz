@@ -1,9 +1,11 @@
 // ReSharper disable once CppUnusedIncludeDirective
 
-#include "thingProperties.h"
+#include "main.h"
 #include <SD.h>
 #include <MKRNB.h>
+#include <ArduinoHttpClient.h>
 
+#include "arduino_secrets.h"
 #include "dropbox.h"
 
 
@@ -21,8 +23,6 @@
 
 #define DEBUG // if defined will output debug messages to Serial
 
-#define GPS_ACTIVE // if defined will wait for active GPS before writing
-
 #define  GPS_BUFFER_SIZE_TYPICAL 512  // typical buffer size, for pre-allocation
 
 unsigned long bufferTime = millis();
@@ -30,14 +30,15 @@ unsigned long bufferTime = millis();
 String gpsBuffer = ""; // holds incoming NMEA sentences
 char basenameOld[MAX_BASENAME_LEN];
 
-//TODO: remove this before merging to main
-String fake_nmea_string = "$GNRMC,000043.00,A,4442.69837,S,16910.92656,E,0.012,,250125,,,D,V*0D\n$GPGSV,4,1,15,05,20,115,42,10,18,287,42,13,35,126,40,15,62,095,44,1*6B";
-
 int current_i = 0;
 
-NBSSLClient client;
+NBSSLClient client({}, 0);
+NB nbAccess;
 GPRS gprs;
-NB nbAccess(true);
+Dropbox* dropbox;
+HttpClient httpClient(client, "content.dropboxapi.com", 443);
+
+char dropbox_key[] = SECRET_DROPBOX_KEY;
 
 void setup() {
     // Initialize serial and GPS serial
@@ -49,65 +50,53 @@ void setup() {
     // Connect to cell network
     boolean connected = false;
     while (!connected) {
-        if ((nbAccess.begin("", "m2m", "", "") == NB_READY) && (gprs.attachGPRS() == GPRS_READY)) {
+        if ((nbAccess.begin("", "m2m", "", "") == NB_READY)) {
             connected = true;
         } else {
-            Serial.println("Not connected to the network");
+            Serial.println("[ERROR] Not connected to the network. Trying again in 10 seconds.");
             delay(1000);
         }
     }
     Serial.println("Connected to the network!");
 
-    Dropbox dropbox("test", "test", client);
+    dropbox = new Dropbox(dropbox_key, httpClient);
 
     // Setup sd card
     initSD();
 
-    // init button and led pins
+    // init led pins
     pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
-    if (client.available()) {
-        char c = client.read();
-        Serial.print(c);
-    }
-    // push_iot("25012500");
-    // delay(200000);
-    // read_serial();
-    // bool GPSActive;
-    // char dateTime[6+6+1]; //yyyymmDDHHMMSS\0
-    // char basename[MAX_BASENAME_LEN];
-    // unsigned long startTime = millis();
-    //
-    // unsigned long idleTime = startTime - bufferTime;
-    // if (idleTime < IDLE_THRESHOLD || gpsBuffer.length() < 3) {return;}
-    //
-    // #ifdef DEBUG
-    //     Serial.println("[DEBUG] starting SD log");
-    //     Serial.println(gpsBuffer);
-    // #endif
-    //
-    // GPSActive = getDateTime(gpsBuffer.c_str(), dateTime);
-    //
-    // getBasename(basename, dateTime, GPSActive);
-    // datalog(basename);
-    //
-    // // Check if we need to change basename
-    // if (strcmp(basename, basenameOld) != 0) {
-    //     // File needs to be changed
-    //     strcpy(basenameOld, basename);
-    // }
-    // gpsBuffer = "";
-    // gpsBuffer.reserve(GPS_BUFFER_SIZE_TYPICAL);
-}
+    read_serial();
+    bool GPSActive;
+    char dateTime[6+6+1]; //yyyymmDDHHMMSS\0
+    char basename[MAX_BASENAME_LEN];
+    unsigned long startTime = millis();
 
-/*
-  Since NMEAStrings is READ_WRITE variable, onNMEAStringsChange() is
-  executed every time a new value is received from IoT Cloud.
-*/
-void onNMEAStringsChange()  {
-    // Add your code here to act upon NMEAStrings change
+    unsigned long idleTime = startTime - bufferTime;
+    if (idleTime < IDLE_THRESHOLD || gpsBuffer.length() < 3) {return;}
+
+    #ifdef DEBUG
+        Serial.println("[DEBUG] starting SD log");
+        Serial.println(gpsBuffer);
+    #endif
+
+    GPSActive = getDateTime(gpsBuffer.c_str(), dateTime);
+
+    getBasename(basename, dateTime, GPSActive);
+    datalog(basename);
+
+    // Check if we need to change basename
+    if (strcmp(basename, basenameOld) != 0) {
+        // File needs to be changed
+        strcpy(basenameOld, basename);
+        // Upload the old file to dropbox
+        handle_dropbox();
+    }
+    gpsBuffer = "";
+    gpsBuffer.reserve(GPS_BUFFER_SIZE_TYPICAL);
 }
 
 bool initSD() {
@@ -118,28 +107,29 @@ bool initSD() {
     return true;
 }
 
-void push_iot(const char *basename) {
+void handle_dropbox() {
     char filename[MAX_FILENAME_LEN];
-    strncpy(filename, basename, MAX_FILENAME_LEN);
+    strncpy(filename, basenameOld, MAX_BASENAME_LEN);
     strcat(filename, ".log");
-    Serial.println(filename);
-    File file = SD.open(filename, FILE_READ);
-    if (file) {
-        while (file.available()) {
-            char c = file.read();
-            nMEAStrings += c;
-            if (c == '\n') {
-                Serial.println("Updating arduino cloud");
-                nMEAStrings = "";
-            }
-        }
-    } else {
-        Serial.println("Not found file...");
-    }
-    Serial.println(nMEAStrings);
-    file.close();
-}
 
+    File sd_file = SD.open(filename);
+    if (sd_file) {
+#ifdef DEBUG
+        Serial.println("[DEBUG] Uploading file to Dropbox.");
+#endif
+        int status = dropbox->upload(sd_file, filename);
+        sd_file.close();
+        if (status == 0) {
+            Serial.println("[ERROR] Failed to upload file to Dropbox. Response from dropbox is above.");
+            return;
+        }
+#ifdef DEBUG
+        Serial.println("[DEBUG] Successfully uploaded to Dropbox");
+#endif
+    } else {
+        Serial.println("[ERROR] Failed to open SD card.");
+    }
+}
 
 bool getDateTime(const char stringOriginal[], char dateTime[]) {
     char strTemp[82];
@@ -229,6 +219,7 @@ void getBasename(char basename[], const char dateTime[], bool gps_active) {
     if (!gps_active) {
         //use default basename
         strcpy(basename, "DEFAULT");
+        return;
     }
 
     strncpy(basename, dateTime, 8); //8 for YYMMDDhh
@@ -242,13 +233,8 @@ void getBasename(char basename[], const char dateTime[], bool gps_active) {
 
 void read_serial() {
     while (Serial1.available()) {
-        // TODO: change back to reading from serial
-        Serial1.read();
-        gpsBuffer += fake_nmea_string[current_i];
-        current_i++;
-        if (current_i >= fake_nmea_string.length()) {
-            current_i = 0;
-        }
+        char c = Serial1.read();
+        gpsBuffer += c;
         bufferTime = millis();
     }
 }

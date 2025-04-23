@@ -4,16 +4,17 @@
 
 #ifndef DROPBOX_H
 #define DROPBOX_H
-#include "MKRNB.h"
+#include <ArduinoHttpClient.h>
+#include <SD.h>
 
 
 class Dropbox {
 public:
-    Dropbox(const char app_key[], const char app_secret[], NBSSLClient& client);
+    Dropbox(const char access_token[], HttpClient& httpClient);
+    int upload(File& sdFile, const char file_name[]) const;
 private:
-    const char *app_key;
-    const char *app_secret;
-    NBSSLClient* client;
+    const char* _accessToken;
+    HttpClient& _http;
 };
 
 #endif //DROPBOX_H
