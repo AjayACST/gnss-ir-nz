@@ -18,7 +18,10 @@ https://doi.org/10.1007/s10291-021-01087-1
 - [1. Arduino Firmware](#1-preparing-arduino)
   - [1.1 Arduino IDE Setup](#11-arduino-ide-setup)
   - [1.2 Format the SD Card](#12-format-the-sd-card)
-  - [1.3 Uploading the Firmware](#13-uploading-the-firmware)
+  - [1.3 Get the firmware](#13-get-the-firmware)
+  - [1.4 Dropbox Key](#14-dropbox-key)
+  - [1.5 Uploading the Firmware](#15-uploading-the-firmware)
+  - [1.6 C++ Definitions](#16-c-definitions)
 - [2. Connecting the Electronics](#2-connecting-the-electronics)
   - [2.1 Connecting the Arduino and SD Shield](#21-connecting-the-arduino-and-sd-shield)
   - [2.2 Connecting the Arduino and GPS Module](#22-connecting-the-arduino-and-gps-module)
@@ -48,9 +51,12 @@ install the latest version of this.
 
 You can then install the library that we will need for this project. We will need the MKRNB library which handles
 communication between the cellular network and our device. To do this click the library icon below the boards manager
-and search for MKRNB and install it.
+and search for MKRNB and install it. You will also need to install the SD library, which handles communication with the SD card,
+and the ArduinoHttpClient, which handles the HTTP requests to Dropbox. To do this search for "SD" and "ArduinoHttpClient" and install
 
-<img src="./images/arduino-library-install.png" height="350" alt="MKRNB library to install">
+<img src="./images/sd-library-install.png" height="350" alt="MKRNB library to install">
+<img src="./images/http-library-install.png" height="350" alt="MKRNB library to install">
+<img src="./images/mkrnb-library-install.png" height="350" alt="MKRNB library to install">
 
 ## 1.2 Format the SD Card
 
@@ -58,16 +64,48 @@ Before you can use the SD card with the Arduino you will need to format it. The 
 this for both Windows and MacOS. Ensure that the SD card is formatted as FAT32 so that the Arduino can read it.
 https://support.garmin.com/en-NZ/?faq=QqSbC0YZTz57kLm7uRQxZ7
 
-## 1.3 Uploading the Firmware
-
+## 1.3 Get the firmware
 Now that we have the board group and library installed we can upload the firmware to the Arduino. To do this create a
-new sketch and copy the code found <a href="https://github.com/AjayACST/grss-ir-nz/blob/main/arduino-code/src/main.cpp">here</a>
-into the sketch.
+new sketch and copy the code found <a href="https://github.com/AjayACST/grss-ir-nz/blob/main/arduino-code/src"> in the
+`main.cpp` file here</a> into the sketch. You will also need to copy or download the files `dropbox.cpp`, `dropbox.h` and `main.h` into 
+their own files as well. To do this by copying click the three dots near the top right of the arduino IDE and then "New File"
+call the file the same as the file you are copying. You can then paste the code into the new file.
+You will need to do this for all three files.
+
+When copying the `arduino_secrets.h.example` file remove the `.example` so you should have a file called `arduino_secrets.h`.
+In this file you will need to type in your sim providers APN, if you are using spark you can leave this as `m2m`.
+For the dropbox key follow the below guide.
+
+## 1.4 Dropbox Key
+To get a dropbox API key you will need a Dropbox account, and to create an app. To create an app go <a href="https://www.dropbox.com/developers">here</a>
+and click the "Create App" button and sign in to your account if prompted. Then select "Scoped Access" and "App folder", then
+give your app a name, you can call this anything you want. Once you have created the app you will be taken to the app, click on 
+"Permissions" in the bar below the app name and add the `file.content.write` and `file.content.read` permissions.
+Click "Submit" to save the changes. Then go back to the settings page and click "Generate" under the "OAuth 2" section. This will
+generate an API key that your Arduino can use to save the NMEA logs to your Dropbox account. Copy this key and paste it
+into the `arduin0_secrets.h` file in the `SECRET_DROPBOX_KEY` definition.
+
+## 1.5 Uploading the Firmware
 
 Now plug the Arduino into your computer and select the board group that we installed earlier. Then select the board
 from the board selector beside the upload button. It should be indicated as "Arduino MKR NB 1500". If it is not go to
 Tools -> Board -> Arduino SAMD Boards (32-bits ARM Cortex-M0+) and select the Arduino MKR NB 1500. You can then click
 the Upload button, Right Arrow Icon, to upload the firmware to the Arduino.
+
+## 1.6 C++ Definitions
+At the top of the file below the #include directives there are a few definitions that you can change if you have some
+different configs
+```cpp
+#define GPS_BAUD 38400 // default baud rate for the u-Blox NEO-M9N GPS module, only change if using a different module
+#define SERIAL_BAUD 9600 // baud rate for the serial monitor, only change if you want to change the speed of the serial monitor.
+#define IDLE_THRESHOLD 10 // threshold for no output from GPS module to be considered "idle". In milliseconds.
+#define SDCard 4 // SD card chip select pin, only change if not using the MKR SD Shield.
+#define WAIT_FOR_VALID_GPS // comment out if you want to start recording data immediately, even if the GPS module is not ready.
+#define MAX_BASENAME_LEN (8+1) // maximum length of the basename of the log files
+#define MAX_FILENAME_LEN (MAX_BASENAME_LEN+1+3) // maximum length of the log file name including extension
+#define DEBUG // comment out if you want to disable debug messages, recommened to comment out when confirmed working.
+#define GPS_BUFFER_SIZE_TYPICAL 512 // typical size of the GPS nmea, used for buffer pre-allocation
+```
 
 # 2. Connecting the Electronics
 
@@ -105,9 +143,10 @@ Once it has been soldered you can plug the GPS Module and Arduino into the bread
 one end of the breadboard and the GPS module on the other end. Ensuring that none of the pins from the GPS Module are
 connected to the same tracks that the Arduino is on. You can then connect the two devices using jumper wires.
 
-|                                                  Bad Placement                                                  |                                                  Good Placement                                                   |
-|:---------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------:|
-| <img src="./images/gps-placement-bad.jpeg" height="350" alt="NEO-M9N GPS Module and Arduino stack placed bad."> | <img src="./images/gps-placement-good.jpeg" height="350" alt="NEO-M9N GPS Module and Arduino stack placed good."> |
+<img src="./images/gps-placement-bad.jpeg" height="350" alt="NEO-M9N GPS Module and Arduino stack placed bad.">
+<img src="./images/gps-placement-good.jpeg" height="350" alt="NEO-M9N GPS Module and Arduino stack placed bad.">
+
+The first image shows an example of bad placement of the board and GPS module.
 
 The connections are as follows:
 - GPS Module VCC -> Arduino 3.3V
