@@ -95,17 +95,17 @@ the Upload button, Right Arrow Icon, to upload the firmware to the Arduino.
 ## 1.6 C++ Definitions
 At the top of the file below the #include directives there are a few definitions that you can change if you have some
 different configs
-```cpp
-#define GPS_BAUD 38400 // default baud rate for the u-Blox NEO-M9N GPS module, only change if using a different module
-#define SERIAL_BAUD 9600 // baud rate for the serial monitor, only change if you want to change the speed of the serial monitor.
-#define IDLE_THRESHOLD 10 // threshold for no output from GPS module to be considered "idle". In milliseconds.
-#define SDCard 4 // SD card chip select pin, only change if not using the MKR SD Shield.
-#define WAIT_FOR_VALID_GPS // comment out if you want to start recording data immediately, even if the GPS module is not ready.
-#define MAX_BASENAME_LEN (8+1) // maximum length of the basename of the log files
-#define MAX_FILENAME_LEN (MAX_BASENAME_LEN+1+3) // maximum length of the log file name including extension
-#define DEBUG // comment out if you want to disable debug messages, recommened to comment out when confirmed working.
-#define GPS_BUFFER_SIZE_TYPICAL 512 // typical size of the GPS nmea, used for buffer pre-allocation
-```
+
+- `#define GPS_BAUD 38400` default baud rate for the u-Blox NEO-M9N GPS module, only change if using a different module
+- `#define SERIAL_BAUD 9600` baud rate for the serial monitor, only change if you want to change the speed of the serial monitor.
+- `#define IDLE_THRESHOLD 10` threshold for no output from GPS module to be considered "idle". In milliseconds.
+- `#define SDCard 4` SD card chip select pin, only change if not using the MKR SD Shield.
+- `#define WAIT_FOR_VALID_GPS` comment out if you want to start recording data immediately, even if the GPS module is not ready.
+- `#define MAX_BASENAME_LEN (8+1)` maximum length of the basename of the log files
+- `#define MAX_FILENAME_LEN (MAX_BASENAME_LEN+1+3)` maximum length of the log file name including extension
+- `#define DEBUG` comment out if you want to disable debug messages, recommend to comment out when confirmed working.
+- `#define GPS_BUFFER_SIZE_TYPICAL 512` typical size of the GPS nmea, used for buffer pre-allocation
+
 
 # 2. Connecting the Electronics
 
