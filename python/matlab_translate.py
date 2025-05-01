@@ -92,4 +92,4 @@ for prn, group in gnss_data.groupby(level='prn'):
         normalized_hsolve = hsolve/np.max(hsolve)
         plt.plot(scaled_x, normalized_hsolve)
         plt.xlim(0, 10)
-    plt.show()
+plt.show()
