@@ -16,5 +16,5 @@ const char* nth_strchr(const char*s, int c, int n);
 void read_serial();
 void blink_led();
 void handle_dropbox();
-
+void powerOn();
 #endif //THINGPROPERTIES_H

@@ -2,12 +2,19 @@
 
 #include "main.h"
 #include <SD.h>
-#include <MKRNB.h>
 #include <ArduinoHttpClient.h>
 
 #include "arduino_secrets.h"
-#include "dropbox.h"
+#include "Dropbox.h"
 
+// settings for the modem
+
+#define SIMPLE_NB_MODEM_SARAR4
+#define SIMPLE_NB_DEBUG Serial
+#define SerialAT SerialSARA
+#define BAUD_RATE 115200
+
+#include <SimpleNBClient.h>
 
 #define GPS_BAUD_RATE 38400
 #define SERIAL_BAUD 9600
@@ -32,37 +39,49 @@ char basenameOld[MAX_BASENAME_LEN];
 
 int current_i = 0;
 
-NBSSLClient client({}, 0);
-NB nbAccess;
-GPRS gprs;
-Dropbox* dropbox;
-HttpClient httpClient(client, "content.dropboxapi.com", 443);
+SimpleNB modem(SerialSARA);
+SimpleNBClientSecure client(modem);
 
-char dropbox_key[] = SECRET_DROPBOX_KEY;
+// NBSSLClient client({}, 0);
+// NB nbAccess(true);
+// GPRS gprs;
+Dropbox* dropbox;
+HttpClient httpClientApi(client, "httpbin.org", 443);
+HttpClient httpClientContent(client, "content.dropboxapi.com", 443);
+
+char dropbox_app_key[] = SECRET_DROPBOX_APP_KEY;
+char dropbox_app_secret[] = SECRET_DROPBOX_APP_SECRET;
 
 void setup() {
+    //NEVER USER RESETN
+    pinMode(SARA_RESETN, OUTPUT);
+    digitalWrite(SARA_RESETN, LOW);
+    powerOn();
     // Initialize serial and GPS serial
     Serial.begin(SERIAL_BAUD);
     Serial1.begin(GPS_BAUD_RATE);
     // This delay gives the chance to wait for a Serial Monitor without blocking if none is found
     delay(1500);
 
-    // Connect to cell network
-    boolean connected = false;
-    while (!connected) {
-        if ((nbAccess.begin("", "m2m", "", "") == NB_READY)) {
-            connected = true;
-        } else {
-            Serial.println("[ERROR] Not connected to the network. Trying again in 10 seconds.");
-            delay(1000);
-        }
+    SimpleNBBegin(SerialSARA, BAUD_RATE);
+    DBG("initialising modem.");
+    modem.init();
+    if (!modem.waitForRegistration(6000L, true)) {
+        DBG("Failed to connect");
+        delay(1000000);
     }
-    Serial.println("Connected to the network!");
 
-    dropbox = new Dropbox(dropbox_key, httpClient);
+    DBG("Activating network");
+    if (!modem.gprsConnect("m2m")) {
+        DBG("Failed to activate");
+    }
+
+    DBG("Connected!");
 
     // Setup sd card
     initSD();
+    // ensure sd has been setup before Dropbox
+    dropbox = new Dropbox(dropbox_app_key, dropbox_app_secret, client);
 
     // init led pins
     pinMode(LED_BUILTIN, OUTPUT);
@@ -90,20 +109,30 @@ void loop() {
 
     // Check if we need to change basename
     if (strcmp(basename, basenameOld) != 0) {
-        // File needs to be changed
-        strcpy(basenameOld, basename);
         // Upload the old file to dropbox
         handle_dropbox();
+        // File needs to be changed
+        strcpy(basenameOld, basename);
     }
     gpsBuffer = "";
     gpsBuffer.reserve(GPS_BUFFER_SIZE_TYPICAL);
 }
+
+void powerOn() {
+    // Send Poweron pulse
+    pinMode(SARA_PWR_ON, OUTPUT);
+    digitalWrite(SARA_PWR_ON, HIGH);
+    delay(150);
+    digitalWrite(SARA_PWR_ON, LOW);
+}
+
 
 bool initSD() {
     if (!SD.begin(SDCard)) {
         Serial.println("[ERROR] Unable to init SD Card!");
         return false;
     }
+    delay(500);
     return true;
 }
 
@@ -119,7 +148,7 @@ void handle_dropbox() {
 #endif
         int status = dropbox->upload(sd_file, filename);
         sd_file.close();
-        if (status == 0) {
+        if (status != 200) {
             Serial.println("[ERROR] Failed to upload file to Dropbox. Response from dropbox is above.");
             return;
         }
