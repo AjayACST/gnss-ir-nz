@@ -28,7 +28,7 @@ creds = {
     "refresh_token": oauth_result.refresh_token,
 }
 
-out_path = "dropbox.json"
+out_path = "dropbox.txt"
 with open(out_path, "w") as f:
     json.dump(creds, f)
 print("Dropbox credentials saved to {}".format(out_path))

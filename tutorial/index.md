@@ -7,7 +7,7 @@
 - [Delwyn Moller](mailto:delwyn.moller@auckland.ac.nz)
 - [Brain Pollard](mailto:bpollard@restorelab.co.nz)
 
-Last updated on the 14th of February 2025
+Last updated on the 11th of May 2025
 
 Based on Fagundes, M.A.R., Mendonça-Tinti, I., Iescheck, A.L. et al. An open-source low-cost sensor for SNR-based GNSS
 reflectometry: design and long-term validation towards sea-level altimetry. GPS Solut 25, 73 (2021).
@@ -33,7 +33,7 @@ https://doi.org/10.1007/s10291-021-01087-1
   - [4.2 Serial Monitor](#42-serial-monitor)
   - [4.3 Data Files](#43-data-files)
 # Parts
-The parts list can be found here: [Parts List Excel File](https://github.com/AjayACST/grss-ir-nz/tree/main/tutorial/parts-list.xlsx)
+The parts list can be found here: https://github.com/AjayACST/grss-ir-nz/tree/main/tutorial/parts-list.xlsx
 
 # 1. Preparing Arduino
 You will need:
@@ -67,32 +67,97 @@ https://support.garmin.com/en-NZ/?faq=QqSbC0YZTz57kLm7uRQxZ7
 ## 1.3 Get the firmware
 Now that we have the board group and library installed we can upload the firmware to the Arduino. To do this create a
 new sketch and copy the code found <a href="https://github.com/AjayACST/grss-ir-nz/blob/main/arduino-code/src"> in the
-`main.cpp` file here</a> into the sketch. You will also need to copy or download the files `dropbox.cpp`, `dropbox.h` and `main.h` into 
-their own files as well. To do this by copying click the three dots near the top right of the arduino IDE and then "New File"
-call the file the same as the file you are copying. You can then paste the code into the new file.
+`main.cpp` file here</a> into the sketch. You will also need to copy or download the files `dropbox.cpp`, `dropbox.h`,
+`main.h`, `arduino_secrets.h.example` (see note below) into their own files as well. You can do this by copying the file
+in GitHub, then click the three dots near the top right of the arduino IDE and then "New File".
+Call the file the same as the file you are copying, you can then paste the code into the new file.
 You will need to do this for all three files.
 
 When copying the `arduino_secrets.h.example` file remove the `.example` so you should have a file called `arduino_secrets.h`.
-In this file you will need to type in your sim providers APN, if you are using spark you can leave this as `m2m`.
-For the dropbox key follow the below guide.
+In this file you will need to type in your sim providers APN, if you are using Spark you can leave this as `m2m`.
+For the dropbox app key and secret follow the guide below. [1.4 Dropbox Key](#14-dropbox-key).
 
 ## 1.4 Dropbox Key
-To get a dropbox API key you will need a Dropbox account, and to create an app. To create an app go <a href="https://www.dropbox.com/developers">here</a>
+To get a dropbox API key you will need a Dropbox account, and to create an app. To create an app go https://dropbox.com/developers
 and click the "Create App" button and sign in to your account if prompted. Then select "Scoped Access" and "App folder", then
-give your app a name, you can call this anything you want. Once you have created the app you will be taken to the app, click on 
-"Permissions" in the bar below the app name and add the `file.content.write` and `file.content.read` permissions.
-Click "Submit" to save the changes. Then go back to the settings page and click "Generate" under the "OAuth 2" section. This will
-generate an API key that your Arduino can use to save the NMEA logs to your Dropbox account. Copy this key and paste it
-into the `arduin0_secrets.h` file in the `SECRET_DROPBOX_KEY` definition.
+give your app a name, you can call this anything you want.
 
-## 1.5 Uploading the Firmware
+<img src="./images/dropbox_create.png" alt="Dropbox App Creation" height="350"/>
+
+Once you have created the app you will be taken to the app, click on 
+"Permissions" in the bar below the app name and add the `file.content.write` and `file.content.read` permissions.
+Click "Submit" to save the changes.
+
+<img src="./images/dropbox_permissions.png" alt="Dropbox App Creation" height="350"/>
+
+Then go back to the settings page and scroll down to the OAuth 2 section. Here you will find your app key and secret
+(you will need to click 'show' to copy the app secret). Copy these into the `arduino_secrets.h` file in the
+`#define DROPBOX_APP_KEY` and `#define DROPBOX_APP_SECRET` lines. You will also need to generate a first time dropbox
+access token, using the python script found on the GitHub: https://github.com/AjayACST/grss-ir-nz/blob/main/python/dropbox/main.py
+
+To run this you will need Python 3 installed and the `dropbox` library. You can install this by running
+```bash
+pip install dropbox
+```
+Then run the script by running the command below in the terminal
+```bash
+python main.py
+```
+You may need to call python3 instead of python depending on your system. The script will ask you to paste in your
+app key and app secret, it will then give you a URL to open in your browser. This will ask you to log in to your dropbox
+account and will give you a code to copy. Copy this code and paste it into your terminal. If all has worked, after a few
+seconds you should see a message saying "Dropbox credentials saved to: ..." and a file called dropbox.txt created in the
+same directory as `main.py`. You will need to copy this file onto your SD card after formatting it.
+
+<img src="./images/dropbox_credentials.png" alt="Dropbox Token Generation"/>
+
+## 1.5 Change GPS Output Rate
+The GPS module will output data at a rate of 1Hz by default. This will create a massive amount of data that is not 
+needed for this project. Therefore we will need to change the output rate to 0.2Hz (5 seconds). To do this you will need
+a windows computer and the u-Center software. You can download this from the u-Blox website here: https://u-blox.com/u-center
+, download u-Center 2.0. Once you have installed and opened u-Center you will need to connect the GPS module, if you are
+using the Sparkfun NEO-M9N from the parts list you can do this by plugging a USB-C cable into the module and your computer.
+Then click the "devices" icon and then the plus button.
+
+<img src="./images/u-center-add.png" height="256" alt="u-Center Adding A Device"/>
+
+Then select the COM port that the GPS module is connected to, this will be the one that is not the Arduino, and click 'Connect'.
+Assuming everything has connected correctly, and your GPS module has a FIX on some satellites you should see a screen like the one below.
+
+<img src="./images/u-center-main.png" height="512" alt="u-Center Main Screen"/>
+
+This screen shows all the parsed raw data that is collected from the GPS module. Now click the settings button beside the 
+plus icon you used to add the module. In the window the comes up click the button indicated below to load in the current
+module configuration. Then search for "CGF-RATE" in the search bar.
+
+<img src="./images/u-center-search.png" alt="u-Center configuration "/>
+
+Then click the "CFG-RATE" option in the list, then the MEAS command. This will bring up the settings panel on the side,
+under "Value (scaled) s" change this to 5, then tick the boxes for "RAM", "BBR" and "Flash". Then click the "Set" button
+and then "Send". Assuming everything has worked you should see 3 green ticks beside the 3 rows added to the table when you
+clicked "Set".
+
+<img src="./images/u-center-config-set.png" alt="u-Center device configuration"/>
+
+You can now close out of u-Center and unplug the GPS module from your computer.
+
+## 1.6 Install Cellular Library
+
+You will need to install one more library before uploading the firmware. To do this download this zip file of code:
+https://github.com/techstudio-design/SimpleNB/archive/refs/heads/master.zip and in your Arduino IDE click the "Sketch"
+button in the toolbar and then "Include Library" -> "Add .ZIP Library". Then select the zip file you just downloaded.
+This will install the library needed for cellular communcation. Once you have done this check everything compiles by
+clicking the "tick" icon in the top left of the Arduino IDE. If you have done everything correctly it should compile and
+you can move on to the next step!
+
+## 1.7 Uploading the Firmware
 
 Now plug the Arduino into your computer and select the board group that we installed earlier. Then select the board
 from the board selector beside the upload button. It should be indicated as "Arduino MKR NB 1500". If it is not go to
 Tools -> Board -> Arduino SAMD Boards (32-bits ARM Cortex-M0+) and select the Arduino MKR NB 1500. You can then click
 the Upload button, Right Arrow Icon, to upload the firmware to the Arduino.
 
-## 1.6 C++ Definitions
+## 1.8 C++ Definitions
 At the top of the file below the #include directives there are a few definitions that you can change if you have some
 different configs
 
