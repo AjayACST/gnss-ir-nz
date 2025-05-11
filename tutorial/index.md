@@ -20,8 +20,10 @@ https://doi.org/10.1007/s10291-021-01087-1
   - [1.2 Format the SD Card](#12-format-the-sd-card)
   - [1.3 Get the firmware](#13-get-the-firmware)
   - [1.4 Dropbox Key](#14-dropbox-key)
-  - [1.5 Uploading the Firmware](#15-uploading-the-firmware)
-  - [1.6 C++ Definitions](#16-c-definitions)
+  - [1.5 Change GPS Output Rate](#15-change-gps-output-rate)
+  - [1.6 Install Cellular Library](#16-install-cellular-library)
+  - [1.7 Uploading the Firmware](#17-uploading-the-firmware)
+  - [1.8 C++ Definitions](#18-c-definitions)
 - [2. Connecting the Electronics](#2-connecting-the-electronics)
   - [2.1 Connecting the Arduino and SD Shield](#21-connecting-the-arduino-and-sd-shield)
   - [2.2 Connecting the Arduino and GPS Module](#22-connecting-the-arduino-and-gps-module)
@@ -49,19 +51,17 @@ install the latest version of this.
 
 <img src="./images/arduino-board-install.png" height="350" alt="Arduino SAMD Board to group to install">
 
-You can then install the library that we will need for this project. We will need the MKRNB library which handles
-communication between the cellular network and our device. To do this click the library icon below the boards manager
-and search for MKRNB and install it. You will also need to install the SD library, which handles communication with the SD card,
-and the ArduinoHttpClient, which handles the HTTP requests to Dropbox. To do this search for "SD" and "ArduinoHttpClient" and install
-
+You can then install the library that we will need for this project. We will need the SD library which handles
+communication with the SD Card. To do this click the library icon below the boards manager
+and search for SD and install it. You will also need to install the ArduinoJSON library which is used to parse the JSON
+from the Dropbox API. To do this search for "ArduinoJSON" and install the latest version.
 <img src="./images/sd-library-install.png" height="350" alt="MKRNB library to install">
-<img src="./images/http-library-install.png" height="350" alt="MKRNB library to install">
-<img src="./images/mkrnb-library-install.png" height="350" alt="MKRNB library to install">
 
 ## 1.2 Format the SD Card
 
 Before you can use the SD card with the Arduino you will need to format it. The link below has instructions on how to do
-this for both Windows and MacOS. Ensure that the SD card is formatted as FAT32 so that the Arduino can read it.
+this for both Windows and macOS. Ensure that the SD card is formatted as FAT32 (just FAT if you are using macOS)
+so that the Arduino can read it.
 https://support.garmin.com/en-NZ/?faq=QqSbC0YZTz57kLm7uRQxZ7
 
 ## 1.3 Get the firmware
