@@ -42,12 +42,7 @@ int current_i = 0;
 SimpleNB modem(SerialSARA);
 SimpleNBClientSecure client(modem);
 
-// NBSSLClient client({}, 0);
-// NB nbAccess(true);
-// GPRS gprs;
 Dropbox* dropbox;
-HttpClient httpClientApi(client, "httpbin.org", 443);
-HttpClient httpClientContent(client, "content.dropboxapi.com", 443);
 
 char dropbox_app_key[] = SECRET_DROPBOX_APP_KEY;
 char dropbox_app_secret[] = SECRET_DROPBOX_APP_SECRET;
@@ -119,7 +114,7 @@ void loop() {
 }
 
 void powerOn() {
-    // Send Poweron pulse
+    // Send Poweron pulse to modem
     pinMode(SARA_PWR_ON, OUTPUT);
     digitalWrite(SARA_PWR_ON, HIGH);
     delay(150);

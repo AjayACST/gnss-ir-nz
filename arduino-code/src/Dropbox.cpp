@@ -16,16 +16,13 @@
 
 Dropbox::Dropbox(const char app_key[], const char app_secret[], SimpleNBClientSecure &client)
     : _app_key(app_key), _app_secret(app_secret), client(client) {
-    if (validate_creds()) {
-        Serial.println("[DEBUG] Token is valid!");
-    } else {
-        Serial.println("[DEBUG] Renewing token!");
+    if (!validate_creds()) {
         renew_creds();
     }
 }
 
 /**
- * Validates dropbox credentials and gets new ones if expired.
+ * Validates dropbox credentials.
  *
  * @return true if successfully validated or got new credentials, false otherwise
  */
@@ -45,10 +42,9 @@ bool Dropbox::validate_creds() const {
         "Host: api.dropboxapi.com\r\n"
         "Authorization: Bearer " + token + "\r\n"
         "Content-Length: 0\r\n"
-        "Connection: close\r\n"    // <-- last header
-        "\r\n";                    // <-- blank line
+        "Connection: close\r\n"
+        "\r\n";
 
-    // 4) send it in chunks
     const char *p = req.c_str();
     size_t       remaining = req.length();
     while (remaining) {
@@ -58,7 +54,6 @@ bool Dropbox::validate_creds() const {
         remaining -= chunk;
     }
 
-    // 5) wait for the response to start
     unsigned long deadline = millis() + 5000;
     while (!client.available() && millis() < deadline) {
         yield();
@@ -69,12 +64,9 @@ bool Dropbox::validate_creds() const {
         return false;
     }
 
-    // 6) read the status line
-    String statusLine = client.readStringUntil('\n');  // e.g. "HTTP/1.1 200 OK\r"
-    statusLine.trim();                                 // remove trailing \r
-    Serial.println("Status Line: " + statusLine);
+    String statusLine = client.readStringUntil('\n');
+    statusLine.trim();
 
-    // 7) parse out the numeric code
     int code = 0;
     int sp1  = statusLine.indexOf(' ');
     int sp2  = statusLine.indexOf(' ', sp1 + 1);
@@ -82,11 +74,16 @@ bool Dropbox::validate_creds() const {
         code = statusLine.substring(sp1 + 1, sp2).toInt();
     }
     client.stop();
-    Serial.print("Parsed code = ");
-    Serial.println(code);
+    // Serial.print("Parsed code = ");
+    // Serial.println(code);
     return code == 200;
 }
 
+/**
+ * Exchanges the refresh_token inside of dropbox.txt for a new access_token if it has expired.
+ *
+ * @return true if succesfully exchange refresh token for new access_token
+ */
 bool Dropbox::renew_creds() const {
     JsonDocument doc;
     if (!read_creds(doc)) {
@@ -167,7 +164,12 @@ bool Dropbox::renew_creds() const {
     return true;
 }
 
-
+/**
+ * Reads the dropbox.txt file and attempts to deserialize the contents
+ *
+ * @param doc JsonDocument to store dropbox credentials in
+ * @return True if successfully read and deserialize, false otherwise
+ */
 bool Dropbox::read_creds(JsonDocument &doc) {
     File dropbox_creds = SD.open("dropbox.txt");
     if (!dropbox_creds) {
@@ -183,23 +185,29 @@ bool Dropbox::read_creds(JsonDocument &doc) {
 }
 
 
+/**
+ *
+ * @param sdFile The opened file from SD library
+ * @param file_name The name of the file that is being uploaded
+ * @return -1 if failure in credentials, -2 if failure in connecting, otherwise status code from Dropbox is returned.
+ */
 int Dropbox::upload(File &sdFile, const char file_name[]) const {
     JsonDocument doc;
     String dropbox_header_args = R"({"path": "/)" + String(file_name) + R"("})";
     if (!read_creds(doc)) {
-        Serial.println("[ERROR] Failed to deseralise the dropbox object.");
+        Serial.println("[ERROR] Failed to deserialize the dropbox object.");
         return -1;
     }
-    if (validate_creds()) {
-        Serial.println("[DEBUG] Token is valid!");
+    if (!validate_creds()) {
+        if (!renew_creds()) {
+            return -1;
+        }
     } else {
-        Serial.println("[DEBUG] Renewing token!");
-        renew_creds();
     }
 
     if (!client.connect("content.dropboxapi.com", 443)) {
         Serial.println("[ERROR] Connection Failed!");
-        return -1;
+        return -2;
     }
 
     String token = doc["access_token"].as<const char*>();
@@ -213,8 +221,6 @@ int Dropbox::upload(File &sdFile, const char file_name[]) const {
             "Connection: close\r\n" +
             "\r\n";
 
-    // Serial.println(req);
-
     const char *p = req.c_str();
     size_t       remaining = req.length();
     while (remaining) {
@@ -223,7 +229,6 @@ int Dropbox::upload(File &sdFile, const char file_name[]) const {
         p         += chunk;
         remaining -= chunk;
     }
-    sdFile.seek(0);
     // 5) Stream file body in chunks
     const size_t BUF_SZ = 512;
     uint8_t buf[BUF_SZ];
@@ -233,8 +238,6 @@ int Dropbox::upload(File &sdFile, const char file_name[]) const {
         client.write(buf, n);
         totalSent+=n;
     }
-
-    // 6) Read status‐line
     // wait up to 5s for server to respond
     unsigned long deadline = millis() + 5000;
     while (!client.available() && millis() < deadline) yield();
@@ -245,8 +248,7 @@ int Dropbox::upload(File &sdFile, const char file_name[]) const {
     }
 
     String statusLine = client.readStringUntil('\n');
-    statusLine.trim();  // strip trailing '\r'
-    Serial.println("Status: " + statusLine);
+    statusLine.trim();
 
     // parse code
     int sp1 = statusLine.indexOf(' ');
@@ -254,17 +256,9 @@ int Dropbox::upload(File &sdFile, const char file_name[]) const {
     int code = (sp1>0 && sp2>sp1)
                ? statusLine.substring(sp1+1, sp2).toInt()
                : -1;
-    Serial.print("HTTP code = "); Serial.println(code);
+    // Serial.print("HTTP code = "); Serial.println(code);
 
-
-    // 8) Read response body
-    String resp;
-    while (client.available()) {
-        resp += char(client.read());
-    }
     client.stop();
-    Serial.println("Body:");
-    Serial.println(resp);
 
     return code;
 
