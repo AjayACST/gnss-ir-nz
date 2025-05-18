@@ -1,0 +1,8 @@
+name: grss-ir-nz
+dependencies:
+  - python=3.12
+  - matplotlib
+  - numpy
+  - pip
+  - pip:
+      - gnssrefl
