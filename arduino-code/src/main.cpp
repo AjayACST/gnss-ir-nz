@@ -32,6 +32,8 @@
 
 #define  GPS_BUFFER_SIZE_TYPICAL 512  // typical buffer size, for pre-allocation
 
+#define DUMP_AT_COMMANDS
+
 unsigned long bufferTime = millis();
 
 String gpsBuffer = ""; // holds incoming NMEA sentences
@@ -39,7 +41,13 @@ char basenameOld[MAX_BASENAME_LEN];
 
 int current_i = 0;
 
-SimpleNB modem(SerialSARA);
+#ifdef DUMP_AT_COMMANDS
+#include <StreamDebugger.h>
+StreamDebugger debugger(SerialAT, Serial);
+SimpleNB modem(debugger);
+#else
+SimpleNB modem(SerialAT);
+#endif
 SimpleNBClientSecure client(modem);
 
 Dropbox* dropbox;
