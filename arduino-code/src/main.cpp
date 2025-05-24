@@ -32,7 +32,7 @@
 
 #define  GPS_BUFFER_SIZE_TYPICAL 512  // typical buffer size, for pre-allocation
 
-#define DUMP_AT_COMMANDS
+// #define DUMP_AT_COMMANDS
 
 unsigned long bufferTime = millis();
 
@@ -231,7 +231,7 @@ void datalog(const char basename[]) {
 
     // get size to check if all has been written
     const byte len1 = gpsBuffer.length();
-    const byte len2 = file.println(gpsBuffer);
+    const byte len2 = file.print(gpsBuffer);
     file.print("\n");
 
     file.close();
@@ -273,7 +273,7 @@ void read_serial() {
 
 void blink_led() {
     digitalWrite(LED_BUILTIN, HIGH);
-    delay(10);
+    delay(100);
     digitalWrite(LED_BUILTIN, LOW);
 }
 
