@@ -3,9 +3,9 @@ on:
   push:
     branches:
       - "main"
-#    paths:
-#      - "tutorial/**.md"
-#      - "tutorial/images/**"
+    paths:
+      - "tutorial/**.md"
+      - "tutorial/images/**"
 
 permissions:
   contents: write
@@ -15,6 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Delete old PDF
+        run: |
+          if [ -d "tutorial_pdf" ]; then
+            rm -rf tutorial_pdf
+          fi
       - uses: BaileyJM02/markdown-to-pdf@v1.2.0
         with:
           input_dir: tutorial

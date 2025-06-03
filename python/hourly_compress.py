@@ -2,8 +2,8 @@ import os
 import shutil
 from pathlib import Path
 
-file_name = "fiel1350.25.A"
-files_path = Path("../data/new").rglob("*.LOG")
+file_name = "fiel1450.25.A"
+files_path = Path("../data/new").rglob("250554*.LOG")
 
 #sort by name
 files_path = sorted(files_path, key=lambda x: x.name)
