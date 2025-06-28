@@ -2,7 +2,6 @@
 
 #include "main.h"
 #include <SD.h>
-#include <ArduinoHttpClient.h>
 
 #include "arduino_secrets.h"
 #include "Dropbox.h"
@@ -13,6 +12,7 @@
 #define SIMPLE_NB_DEBUG Serial
 #define SerialAT SerialSARA
 #define BAUD_RATE 115200
+#define SIMPLE_NB_RX_BUFFER 1024
 
 #include <SimpleNBClient.h>
 
