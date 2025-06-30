@@ -17,6 +17,5 @@ void read_serial();
 void blink_led();
 void handle_dropbox();
 void powerOn();
-void logPrintln(const String& message);
 #endif
 //MAIN_H

@@ -22,12 +22,10 @@ public:
     int upload(File& sdFile, const char file_name[]);
 private:
     static bool read_creds(JsonDocument& doc);
-    bool validate_creds();
-    bool renew_creds();
+    bool validate_creds() const;
+    bool renew_creds() const;
     const char* _app_key;
     const char* _app_secret;
-    void logPrintln(const String& message);
-    File logFile;
     SimpleNBClientSecure& client;
 };
 

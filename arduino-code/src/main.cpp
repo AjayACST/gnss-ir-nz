@@ -124,14 +124,6 @@ void loop() {
     gpsBuffer.reserve(GPS_BUFFER_SIZE_TYPICAL);
 }
 
-void logPrintln(const String& message) {
-    Serial.println(message);
-    if (logFile) {
-        logFile.println(message);
-        logFile.flush();  // ensure it's written immediately
-    }
-}
-
 void powerOn() {
     // Send Poweron pulse to modem
     pinMode(SARA_PWR_ON, OUTPUT);
@@ -159,19 +151,19 @@ void handle_dropbox() {
     File sd_file = SD.open(filename);
     if (sd_file) {
 #ifdef DEBUG
-        logPrintln("[DEBUG] Uploading file to Dropbox.");
+        Serial.println("[DEBUG] Uploading file to Dropbox.");
 #endif
         int status = dropbox->upload(sd_file, filename);
         sd_file.close();
         if (status != 200) {
-            logPrintln("[ERROR] Failed to upload file to Dropbox. Response from dropbox is above.");
+            Serial.println("[ERROR] Failed to upload file to Dropbox. Response from dropbox is above.");
             return;
         }
 #ifdef DEBUG
-        logPrintln("[DEBUG] Successfully uploaded to Dropbox");
+        Serial.println("[DEBUG] Successfully uploaded to Dropbox");
 #endif
     } else {
-        logPrintln("[ERROR] Failed to open SD card.");
+        Serial.println("[ERROR] Failed to open SD card.");
     }
 }
 
@@ -182,7 +174,7 @@ bool getDateTime(const char stringOriginal[], char dateTime[]) {
 
     if (strlen(stringOriginal) == 0) {
 #ifdef DEBUG
-        logPrintln("[DEBUG] Empty string");
+        Serial.println("[DEBUG] Empty string");
 #endif
         return false;
 
@@ -190,13 +182,13 @@ bool getDateTime(const char stringOriginal[], char dateTime[]) {
     gnrmc_str = strstr(stringOriginal, "$GNRMC");
     if (!gnrmc_str) {
 #ifdef DEBUG
-        logPrintln("[DEBUG] $GNRMC NMEA sentence not found!");
+        Serial.println("[DEBUG] $GNRMC NMEA sentence not found!");
 #endif
         return false;
     }
     if (gnrmc_str[17] != 'A') {
 #ifdef DEBUG
-        logPrintln("[DEBUG] GPS is not active yet!");
+        Serial.println("[DEBUG] GPS is not active yet!");
 #endif
         return false;
     }
@@ -220,7 +212,7 @@ bool getDateTime(const char stringOriginal[], char dateTime[]) {
 
     dateTime[12] = '\0';
 #ifdef DEBUG
-    logPrintln("[DEBUG] GPS Date Time: " + String(dateTime));
+    Serial.println("[DEBUG] GPS Date Time: " + String(dateTime));
 #endif
     return true;
 }
@@ -232,7 +224,7 @@ void datalog(const char basename[]) {
 
     File file = SD.open(filename, FILE_WRITE);
     if (!file) {
-        logPrintln("[ERROR] Failed to open file for writing. Filename: " + String(filename));
+        Serial.println("[ERROR] Failed to open file for writing. Filename: " + String(filename));
         return;
     }
 
@@ -245,11 +237,11 @@ void datalog(const char basename[]) {
     if (len1 == len2) {
         blink_led();
 #ifdef DEBUG
-        logPrintln("[DEBUG] Written " + String(100*len2/len1) + "% of " + String(len1) + " bytes.");
+        Serial.println("[DEBUG] Written " + String(100*len2/len1) + "% of " + String(len1) + " bytes.");
 #endif
         return;
     }
-    logPrintln("[ERROR] Written " + String(100*len2/len1) + "% of " + String(len1) + " bytes.");
+    Serial.println("[ERROR] Written " + String(100*len2/len1) + "% of " + String(len1) + " bytes.");
 }
 
 void getBasename(char basename[], const char dateTime[], bool gps_active) {
@@ -263,7 +255,7 @@ void getBasename(char basename[], const char dateTime[], bool gps_active) {
     basename[8] = '\0';
 
 #ifdef DEBUG
-    logPrintln("[DEBUG] Basename: " + String(basename));
+    Serial.println("[DEBUG] Basename: " + String(basename));
 #endif
 
 }
