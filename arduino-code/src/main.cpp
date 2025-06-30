@@ -12,7 +12,6 @@
 #define SIMPLE_NB_DEBUG Serial
 #define SerialAT SerialSARA
 #define BAUD_RATE 115200
-#define SIMPLE_NB_RX_BUFFER 1024
 
 #include <SimpleNBClient.h>
 
@@ -30,7 +29,7 @@
 
 #define DEBUG // if defined will output debug messages to Serial
 
-#define  GPS_BUFFER_SIZE_TYPICAL 512  // typical buffer size, for pre-allocation
+#define  GPS_BUFFER_SIZE_TYPICAL 2048  // typical buffer size, for pre-allocation
 
 // #define DUMP_AT_COMMANDS
 
@@ -51,6 +50,8 @@ SimpleNB modem(SerialAT);
 SimpleNBClientSecure client(modem);
 
 Dropbox* dropbox;
+
+File logFile;
 
 char dropbox_app_key[] = SECRET_DROPBOX_APP_KEY;
 char dropbox_app_secret[] = SECRET_DROPBOX_APP_SECRET;
@@ -90,6 +91,8 @@ void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
 }
 
+unsigned long lastMillis = 0;
+
 void loop() {
     read_serial();
     bool GPSActive;
@@ -100,16 +103,16 @@ void loop() {
     unsigned long idleTime = startTime - bufferTime;
     if (idleTime < IDLE_THRESHOLD || gpsBuffer.length() < 3) {return;}
 
-    #ifdef DEBUG
-        Serial.println("[DEBUG] starting SD log");
-        Serial.println(gpsBuffer);
-    #endif
+    // #ifdef DEBUG
+    //     Serial.println("[DEBUG] starting SD log");
+    //     Serial.println(gpsBuffer);
+    // #endif
 
     GPSActive = getDateTime(gpsBuffer.c_str(), dateTime);
 
     getBasename(basename, dateTime, GPSActive);
     datalog(basename);
-
+    // handle_dropbox();
     // Check if we need to change basename
     if (strcmp(basename, basenameOld) != 0) {
         // Upload the old file to dropbox
@@ -119,6 +122,14 @@ void loop() {
     }
     gpsBuffer = "";
     gpsBuffer.reserve(GPS_BUFFER_SIZE_TYPICAL);
+}
+
+void logPrintln(const String& message) {
+    Serial.println(message);
+    if (logFile) {
+        logFile.println(message);
+        logFile.flush();  // ensure it's written immediately
+    }
 }
 
 void powerOn() {
@@ -135,6 +146,7 @@ bool initSD() {
         Serial.println("[ERROR] Unable to init SD Card!");
         return false;
     }
+    logFile = SD.open("log.txt", FILE_WRITE);
     delay(500);
     return true;
 }
@@ -147,19 +159,19 @@ void handle_dropbox() {
     File sd_file = SD.open(filename);
     if (sd_file) {
 #ifdef DEBUG
-        Serial.println("[DEBUG] Uploading file to Dropbox.");
+        logPrintln("[DEBUG] Uploading file to Dropbox.");
 #endif
         int status = dropbox->upload(sd_file, filename);
         sd_file.close();
         if (status != 200) {
-            Serial.println("[ERROR] Failed to upload file to Dropbox. Response from dropbox is above.");
+            logPrintln("[ERROR] Failed to upload file to Dropbox. Response from dropbox is above.");
             return;
         }
 #ifdef DEBUG
-        Serial.println("[DEBUG] Successfully uploaded to Dropbox");
+        logPrintln("[DEBUG] Successfully uploaded to Dropbox");
 #endif
     } else {
-        Serial.println("[ERROR] Failed to open SD card.");
+        logPrintln("[ERROR] Failed to open SD card.");
     }
 }
 
@@ -170,7 +182,7 @@ bool getDateTime(const char stringOriginal[], char dateTime[]) {
 
     if (strlen(stringOriginal) == 0) {
 #ifdef DEBUG
-        Serial.println("[DEBUG] Empty string");
+        logPrintln("[DEBUG] Empty string");
 #endif
         return false;
 
@@ -178,13 +190,13 @@ bool getDateTime(const char stringOriginal[], char dateTime[]) {
     gnrmc_str = strstr(stringOriginal, "$GNRMC");
     if (!gnrmc_str) {
 #ifdef DEBUG
-        Serial.println("[DEBUG] $GNRMC NMEA sentence not found!");
+        logPrintln("[DEBUG] $GNRMC NMEA sentence not found!");
 #endif
         return false;
     }
     if (gnrmc_str[17] != 'A') {
 #ifdef DEBUG
-        Serial.println("[DEBUG] GPS is not active yet!");
+        logPrintln("[DEBUG] GPS is not active yet!");
 #endif
         return false;
     }
@@ -206,9 +218,9 @@ bool getDateTime(const char stringOriginal[], char dateTime[]) {
     const char *timeIn = &strTemp[7];
     strncpy(&dateTime[6], timeIn, 6);
 
-    dateTime[12] = '\n';
+    dateTime[12] = '\0';
 #ifdef DEBUG
-    Serial.println("[DEBUG] GPS Date Time: " + String(dateTime));
+    logPrintln("[DEBUG] GPS Date Time: " + String(dateTime));
 #endif
     return true;
 }
@@ -218,33 +230,26 @@ void datalog(const char basename[]) {
     strncpy(filename, basename, MAX_BASENAME_LEN);
     strcat(filename, ".log");
 
-#ifdef DEBUG
-    Serial.println("[DEBUG] Filename: " + String(filename));
-#endif
-
     File file = SD.open(filename, FILE_WRITE);
-
     if (!file) {
-        Serial.println("[ERROR] Failed to open file for writing. Filename: " + String(filename));
+        logPrintln("[ERROR] Failed to open file for writing. Filename: " + String(filename));
         return;
     }
 
-    // get size to check if all has been written
-    const byte len1 = gpsBuffer.length();
-    const byte len2 = file.print(gpsBuffer);
-    file.print("\n");
+    const size_t len1 = gpsBuffer.length();
+    const size_t len2 = file.print(gpsBuffer);
 
+    file.flush();
     file.close();
 
     if (len1 == len2) {
         blink_led();
-        #ifdef DEBUG
-            Serial.println("[DEBUG] Written " + String(100*len2/len1) + "% of " + String(len1) + " bytes.");
-        #endif
+#ifdef DEBUG
+        logPrintln("[DEBUG] Written " + String(100*len2/len1) + "% of " + String(len1) + " bytes.");
+#endif
         return;
     }
-    // Show anyway if error
-    Serial.println("[ERROR] Written " + String(100*len2/len1) + "% of " + String(len1) + " bytes.");
+    logPrintln("[ERROR] Written " + String(100*len2/len1) + "% of " + String(len1) + " bytes.");
 }
 
 void getBasename(char basename[], const char dateTime[], bool gps_active) {
@@ -258,7 +263,7 @@ void getBasename(char basename[], const char dateTime[], bool gps_active) {
     basename[8] = '\0';
 
 #ifdef DEBUG
-    Serial.println("[DEBUG] Basename: " + String(basename));
+    logPrintln("[DEBUG] Basename: " + String(basename));
 #endif
 
 }

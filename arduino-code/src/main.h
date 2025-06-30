@@ -2,8 +2,8 @@
 // Created by Ajay Quirk on 31/03/2025.
 //
 
-#ifndef THINGPROPERTIES_H
-#define THINGPROPERTIES_H
+#ifndef MAIN_H
+#define MAIN_H
 
 #include <Arduino.h>
 
@@ -17,4 +17,6 @@ void read_serial();
 void blink_led();
 void handle_dropbox();
 void powerOn();
-#endif //THINGPROPERTIES_H
+void logPrintln(const String& message);
+#endif
+//MAIN_H

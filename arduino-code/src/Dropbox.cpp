@@ -16,6 +16,7 @@
 
 Dropbox::Dropbox(const char app_key[], const char app_secret[], SimpleNBClientSecure &client)
     : _app_key(app_key), _app_secret(app_secret), client(client) {
+    this->logFile = SD.open("DROPBOXL.txt", FILE_WRITE);
     if (!validate_creds()) {
         renew_creds();
     }
@@ -26,14 +27,14 @@ Dropbox::Dropbox(const char app_key[], const char app_secret[], SimpleNBClientSe
  *
  * @return true if successfully validated or got new credentials, false otherwise
  */
-bool Dropbox::validate_creds() const {
+bool Dropbox::validate_creds() {
     JsonDocument doc;
     if (!read_creds(doc)) {
         return false;
     }
 
     if (!client.connect("api.dropboxapi.com", 443)) {
-        Serial.println("[ERROR] Failed to connect!");
+        logPrintln("[ERROR] Failed to connect!");
         return false;
     }
     String token = doc["access_token"].as<const char*>();
@@ -59,7 +60,7 @@ bool Dropbox::validate_creds() const {
         yield();
     }
     if (!client.available()) {
-        Serial.println("[ERROR] No response from server");
+        logPrintln("[ERROR] No response from server");
         client.stop();
         return false;
     }
@@ -75,7 +76,7 @@ bool Dropbox::validate_creds() const {
     }
     client.stop();
     // Serial.print("Parsed code = ");
-    // Serial.println(code);
+    // logPrintln(code);
     return code == 200;
 }
 
@@ -84,14 +85,14 @@ bool Dropbox::validate_creds() const {
  *
  * @return true if succesfully exchange refresh token for new access_token
  */
-bool Dropbox::renew_creds() const {
+bool Dropbox::renew_creds() {
     JsonDocument doc;
     if (!read_creds(doc)) {
         return false;
     }
 
     if (!client.connect("api.dropboxapi.com", 443)) {
-        Serial.println("[ERROR] Failed to connect!");
+        logPrintln("[ERROR] Failed to connect!");
         return false;
     }
 
@@ -127,7 +128,7 @@ bool Dropbox::renew_creds() const {
             if (client.readStringUntil('\n') == "\r") break;
         }
         // dump body
-        Serial.println("[ERROR] Response body: ");
+        logPrintln("[ERROR] Response body: ");
         while (client.available()) {
             Serial.write(client.read());
         }
@@ -145,7 +146,7 @@ bool Dropbox::renew_creds() const {
     DeserializationError err = deserializeJson(resDoc, client);
     client.stop();
     if (err) {
-        Serial.println("[ERROR] Failed to deserialize the response from dropbox!");
+        logPrintln("[ERROR] Failed to deserialize the response from dropbox!");
         return false;
     }
     String new_token = resDoc["access_token"];
@@ -187,19 +188,16 @@ bool Dropbox::read_creds(JsonDocument &doc) {
 
 /**
  *
+ *
  * @param sdFile The opened file from SD library
  * @param file_name The name of the file that is being uploaded
  * @return -1 if failure in credentials, -2 if failure in connecting, otherwise status code from Dropbox is returned.
  */
-int Dropbox::upload(File &sdFile, const char file_name[]) const {
+int Dropbox::upload(File &sdFile, const char file_name[]) {
     digitalWrite(LED_BUILTIN, HIGH);
     JsonDocument doc;
     String dropbox_header_args = R"({"path": "/)" + String(file_name) + R"(", "mode": "overwrite")" + "}";
-    if (!read_creds(doc)) {
-        Serial.println("[ERROR] Failed to deserialize the dropbox object.");
-        digitalWrite(LED_BUILTIN, LOW);
-        return -1;
-    }
+
     if (!validate_creds()) {
         if (!renew_creds()) {
             digitalWrite(LED_BUILTIN, LOW);
@@ -207,8 +205,14 @@ int Dropbox::upload(File &sdFile, const char file_name[]) const {
         }
     }
 
+    if (!read_creds(doc)) {
+        logPrintln("[ERROR] Failed to deserialize the dropbox object.");
+        digitalWrite(LED_BUILTIN, LOW);
+        return -1;
+    }
+
     if (!client.connect("content.dropboxapi.com", 443)) {
-        Serial.println("[ERROR] Connection Failed!");
+        logPrintln("[ERROR] Connection Failed!");
         digitalWrite(LED_BUILTIN, LOW);
         return -2;
     }
@@ -245,7 +249,7 @@ int Dropbox::upload(File &sdFile, const char file_name[]) const {
     unsigned long deadline = millis() + 5000;
     while (!client.available() && millis() < deadline) yield();
     if (!client.available()) {
-        Serial.println("[ERROR] no response");
+        logPrintln("[ERROR] no response");
         client.stop();
         digitalWrite(LED_BUILTIN, LOW);
         return -1;
@@ -260,22 +264,32 @@ int Dropbox::upload(File &sdFile, const char file_name[]) const {
     int code = (sp1>0 && sp2>sp1)
                ? statusLine.substring(sp1+1, sp2).toInt()
                : -1;
-    Serial.print("HTTP code = "); Serial.println(code);
-    if (code != 200) {
-        // skip headers
-        while (client.available()) {
-            if (client.readStringUntil('\n') == "\r") break;
-        }
-        // dump body
-        Serial.println("[ERROR] Response body: ");
-        while (client.available()) {
-            Serial.write(client.read());
-        }
+    logPrintln("HTTP code = "); logPrintln(String(code));
+    // skip headers
+    while (client.available()) {
+        if (client.readStringUntil('\n') == "\r") break;
     }
+    // dump body
+    logPrintln("[ERROR] Response body: ");
+    // read the response body and log using logPrintln
+    String buf_res;
+    while (client.available()) {
+        char c = client.read();
+        buf_res += c;
+    }
+    // log the response body
+    logPrintln(String(buf_res));
 
     client.stop();
     digitalWrite(LED_BUILTIN, LOW);
 
     return code;
+}
 
+void Dropbox::logPrintln(const String& message) {
+    Serial.println(message);
+    if (logFile) {
+        logFile.println(message);
+        logFile.flush();  // ensure it's written immediately
+    }
 }
