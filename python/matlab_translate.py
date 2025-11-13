@@ -52,12 +52,16 @@ naz = round(360/az_range)
 azim1 = 230
 azim2 = 360
 
-gnss_data = readGPS("../data/250125.LOG", True)
+gnss_data = readGPS("250125.LOG", True)
 
-for prn, group in gnss_data.groupby(level='prn'):
-    el = np.array(group.el)
-    az = np.array(group.az)
-    snr = np.array(group.snr)
+for prn, group in enumerate(gnss_data, start=1):
+    if group.size == 0:
+        continue
+
+    el = group['el']
+    az = group['az']
+    snr = group['snr']
+
     i = find_indices(el, az, emin, emax, azim1, azim2)
 
     if i.size == 0:

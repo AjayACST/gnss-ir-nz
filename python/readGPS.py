@@ -28,8 +28,6 @@
 import numpy as np   
 import os
 
-import pandas as pd
-
 from read_gpgsv import *
 
 #===========#
@@ -158,29 +156,28 @@ def readGPS(Filename, interp=False):
     # --------------------#
 
     fid.close()
-    dataframes = []
-    for prn, sub_arr in enumerate(gps_data):
-        if sub_arr.size > 0:
-            df = pd.DataFrame(sub_arr)
-            df['prn'] = prn+1
-            dataframes.append(df)
 
-    df = pd.concat(dataframes, ignore_index=True)
-    df.set_index('prn', inplace=True)
-    df_updated = df.copy()
-
+    # Interpolation step (NumPy-only)
     if interp:
-        for prn, data in df.groupby(level='prn'):
-            el = data['el'].values
+        for prn, data in enumerate(gps_data, start=1):
+            if data.size == 0:
+                continue
+
+            el = data['el']
+            utc = data['utc']
+
+            # find indices where elevation changes sharply
             ind = np.where(np.abs(np.diff(el)) > 0.1)[0]
 
             if len(ind) > 10:
-                timeshort = data['utc'].values[ind]
-                elv = np.interp(data['utc'].values, timeshort, el[ind])
-                df_updated.loc[prn, 'el'] = elv
+                timeshort = utc[ind]
+                elv = np.interp(utc, timeshort, el[ind])
+                data['el'] = elv  # directly update elevation values
+
+
 
     # print(df_updated.loc[2, 'el'])
-    return df_updated
+    return gps_data
 
 # readGPS('../data/240531.LOG', True)
 
@@ -215,4 +212,3 @@ def readGPS(Filename, interp=False):
 # >>> plt.xlabel("elevation")
 # >>> plt.ylabel("snr [dB]")
 # >>> plt.show()
-
