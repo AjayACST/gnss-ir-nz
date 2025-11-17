@@ -1,4 +1,4 @@
-# 2025 Snow Farm GPS Project
+# 
 
 ## Overview
 Welcome to the 2025 Snow Farm GPS Project! We're building a reliable, low-cost GNSS-IR system to monitor environmental changes at Snow Farm, Cardrona, NZ. This student-driven project is supported by local experts and aims to create a robust setup for real-time environmental data collection.

@@ -42,7 +42,6 @@ def read_gpgsv(gsv_data):
 
         # first block is cells 4 through 7 #
         # data is prn, elev, az, snr       #
-        print(gsv_data[ii])
         if ("*" in gsv_data[ii][4]): # if we have an early checksum, abort the next group of four
             break
             

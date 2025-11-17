@@ -6,7 +6,7 @@
 %
 % Definition: http://de.wikipedia.org/wiki/NMEA_0183
 doInterp=1;
-fid = fopen("250125.LOG",'r');
+fid = fopen("25051504.LOG",'r');
 TRUE = 1;
 FALSE=0;
 

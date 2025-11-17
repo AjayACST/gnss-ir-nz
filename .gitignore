@@ -5,3 +5,4 @@ refl-input/
 data/new
 helm/config.yaml
 notebooks/dropbox_creds.json
+.idea/**
