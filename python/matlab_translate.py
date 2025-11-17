@@ -1,10 +1,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from astropy.timeseries import LombScargle
 
 from readGPS import readGPS
 
 def find_indices(el, az, emin, emax, azim1, azim2):
+    """
+    Find indices where elevation and azimuth angles fall within specified ranges.
+
+    :param el: List of elevation angles
+    :param az: List of azimuth angles
+    :param emin: Minimum elevation angle
+    :param emax: Maximum elevation angle
+    :param azim1: Minimum azimuth angle
+    :param azim2: Maximum azimuth angle
+    :return: Array of indices satisfying the conditions
+    """
     condition = (el > emin) & (el < emax) & \
                 (az > azim1) & (az < azim2) & \
                 (~np.isnan(az)) & (~np.isnan(el))
@@ -19,11 +29,26 @@ def find_indices(el, az, emin, emax, azim1, azim2):
     return indices
 
 def smooth(data):
+    """
+    Simple moving average smoothing with a window size of 5. Translation matlab's smooth function.
+    :param data: 1D array of data to be smoothed
+    :return: data array of smoothed data
+    """
     kernel = np.ones(5) / 5
     return np.convolve(data, kernel, mode='same')
 
 
 def get_ofac_hifac(elevAngles, cf, maxH, desiredPrec):
+    """
+    Calculate oversampling factor (ofac) and high-frequency factor (hifac) for Lomb-Scargle periodogram.
+    Taken from gnssrefl library by Kristine M. Larson.
+
+    :param elevAngles: array of elevation angles in degrees
+    :param cf: carrier frequency in meters
+    :param maxH: maximum reflector height in meters
+    :param desiredPrec: desired precision in meters
+    :return: (ofac, hifac)
+    """
     X = np.sin(elevAngles * np.pi / 180) / cf
 
     # number of observations
@@ -50,21 +75,17 @@ def get_ofac_hifac(elevAngles, cf, maxH, desiredPrec):
 
     return ofac, hifac
 
-# python
-import numpy as np
-
 def peak2noise(f, p, frange):
     """
-    Args:
-        f: 1D array of x-axis values (e.g., reflector height or frequency).
-        p: 1D array of power/amplitude values (same length as f).
-        frange: 2-tuple/list (low, high) defining the range for noise estimation.
+    Identifies the peak in power/amplitude array and computes peak-to-noise ratio.
 
-    Returns:
-        (maxRH, maxRHAmp, pknoise)
-        maxRH: x-value at the maximum of p
-        maxRHAmp: maximum value of p
-        pknoise: maxRHAmp / mean(p in frange)
+    :param f: 1D array ox x-axis values.
+    :param p: 1D array of power/amplitude values (same length as f).
+    :param frange: 2-tuple/list (low, high) defining the range for noise estimation.
+    :return: (maxRH, maxRHAmp, pknoise)
+             maxRH: x-value at the maximum of p
+             maxRHAmp: maximum value of p
+             pknoise: maxRHAmp / mean(p in frange)
     """
     f = np.asarray(f)
     p = np.asarray(p)
@@ -88,19 +109,17 @@ def peak2noise(f, p, frange):
 def lomb(t, h, ofac, hifac):
     """
     Computes the Lomb normalized periodogram of unevenly sampled data.
+    Translated from Dmitry Savransky's original implementation in Matlab.
 
-    Args:
-        t: 1D array of sample times (not necessarily evenly spaced)
-        h: 1D array of data values (same length as t)
-        ofac: oversampling factor (typically >= 4)
-        hifac: high-frequency factor (multiple of average Nyquist frequency)
-
-    Returns:
-        (f, P, prob, conf95)
-        f: array of frequencies considered
-        P: spectral amplitude at each frequency
-        prob: false alarm probability (significance of power values)
-        conf95: 95% confidence level amplitude
+    :param t: 1D array of sample times (not necessarily evenly spaced)
+    :param h: 1D array of data values (same length as t)
+    :param ofac: oversampling factor (typically >= 4)
+    :param hifac: high-frequency factor (multiple of average Nyquist frequency)
+    :return: (f, P, prob, conf95)
+             f: array of frequencies considered
+             P: spectral amplitude at each frequency
+             prob: false alarm probability (significance of power values)
+             conf95: 95% confidence level amplitude
     """
     t = np.asarray(t)
     h = np.asarray(h)
@@ -114,7 +133,7 @@ def lomb(t, h, ofac, hifac):
 
     # Mean and variance
     mu = np.mean(h)
-    s2 = np.var(h, ddof=0)  # Use ddof=0 to match MATLAB's var()
+    s2 = np.var(h, ddof=0)
 
     # Calculate sampling frequencies
     f_step = 1 / (T * ofac)
@@ -125,14 +144,11 @@ def lomb(t, h, ofac, hifac):
     w = 2 * np.pi * f
 
     # Constant offsets (tau)
-    # tau = atan2(sum(sin(2*w*t)), sum(cos(2*w*t))) / (2*w)
     sin_term = np.sum(np.sin(2 * w[:, np.newaxis] * t), axis=1)
     cos_term = np.sum(np.cos(2 * w[:, np.newaxis] * t), axis=1)
     tau = np.arctan2(sin_term, cos_term) / (2 * w)
 
     # Spectral power terms
-    # cterm = cos(w*t' - w*tau)
-    # sterm = sin(w*t' - w*tau)
     phase_shift = w[:, np.newaxis] * t - (w * tau)[:, np.newaxis]
     cterm = np.cos(phase_shift)
     sterm = np.sin(phase_shift)
@@ -163,25 +179,12 @@ def lomb(t, h, ofac, hifac):
     conf95 = 2 * np.sqrt(s2 * conf95_power / N)
 
     return f, P, prob, conf95
-# Example (using your computed arrays):
-# maxRH, maxRHAmp, pknoise = peak2noise(scaled_x, normalized_hsolve, (0.5, 8.0))
 
-
-# satlist = np.array(range(32)) #use all GPS satellites
-# print(satlist)
 pvf = 2 # polynomial order used to remove the direct signal.
 # this can be smaller, especially for short eleveation angle ranges.
 
-# this will store a crude median reflector height for a single da/site
-avg_mxRH = []
-freqtype = 1
-
 min_rh = 0.4 # meters
-max_arc_time = 4 # one hour
 minAmp = 15
-
-# Minimum number of points, completely arbitrary for now.
-min_points = 100
 
 maxH = 8
 desiredPrecision = 0.005
@@ -194,7 +197,6 @@ emax = 30
 ediff = 10
 
 cf = 0.1902936
-w=4*np.pi/cf
 
 az_range = 45
 naz = round(360/az_range)
