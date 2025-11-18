@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from datetime import datetime
 
 from readGPS import readGPS
 
@@ -180,6 +182,39 @@ def lomb(t, h, ofac, hifac):
 
     return f, P, prob, conf95
 
+def nmea_to_datetime(date_val, utc_val):
+    if date_val in (None, 0) or np.isnan(utc_val):
+        return None
+    year = int(date_val // 10000)
+    month = int((date_val % 10000) // 100)
+    day = int(date_val % 100)
+    utc_int = int(utc_val)
+    hour = int(utc_int // 10000)
+    minute = int((utc_int % 10000) // 100)
+    second = int(utc_int % 100)
+    frac = utc_val - utc_int
+    microseconds = int(round(frac * 1_000_000))
+    try:
+        return datetime(year, month, day, hour, minute, second, microseconds)
+    except ValueError:
+        return None
+
+
+def resolve_date(date_array, idx):
+    date_val = int(date_array[idx])
+    if date_val != 0:
+        return date_val
+    for back in range(idx - 1, -1, -1):
+        candidate = int(date_array[back])
+        if candidate != 0:
+            return candidate
+    for forward in range(idx + 1, len(date_array)):
+        candidate = int(date_array[forward])
+        if candidate != 0:
+            return candidate
+    return 0
+
+
 pvf = 2 # polynomial order used to remove the direct signal.
 # this can be smaller, especially for short eleveation angle ranges.
 
@@ -206,12 +241,14 @@ naz = round(360/az_range)
 azim1 = 0
 azim2 = 360
 
-gnss_data = readGPS("../data/fiel1450.25.A", True)
+gnss_data = readGPS("../data/25maytest.log", True)
+
+height_times = []
+height_values = []
 
 for prn, group in enumerate(gnss_data, start=1):
     if group.size == 0:
         continue
-
     el = group['el']
     az = group['az']
     snr = group['snr']
@@ -245,6 +282,29 @@ for prn, group in enumerate(gnss_data, start=1):
         freq, power, prob, conf95 = lomb(sorted_x_int / (cf/2), sorted_y_int, ofac, hifac)
         maxRh, maxAmp, pknoise = peak2noise(freq, power, (0, 8))
         if maxAmp > minAmp and maxRh > min_rh and pknoise > pcrit and (max(elev_angles) - min(elev_angles)) > ediff:
+            dominant_local_idx = int(np.argmax(np.abs(save_snr)))
+            dominant_global_idx = i[dominant_local_idx]
+            date_val = resolve_date(group['date'], dominant_global_idx)
+            timestamp = None
+            if date_val != 0:
+                timestamp = nmea_to_datetime(date_val, group['utc'][dominant_global_idx])
+            if timestamp is not None:
+                height_times.append(timestamp)
+                height_values.append(maxRh)
+
             plt.plot(freq, power)
         plt.xlim(0, 10)
+
 plt.show()
+valid_points = [(t, h) for t, h in zip(height_times, height_values) if t is not None]
+if not valid_points:
+    print('No valid reflector heights found for plotting.')
+else:
+    print(valid_points)
+    valid_points.sort(key=lambda x: x[0])
+    plot_times, plot_heights = zip(*valid_points)
+    plt.figure()
+    plt.plot(plot_times, plot_heights, marker='o')
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    plt.gcf().autofmt_xdate()
+    plt.show()
