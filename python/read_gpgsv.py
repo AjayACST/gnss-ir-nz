@@ -25,64 +25,45 @@ import numpy as np
 #============#
 
 def read_gpgsv(gsv_data):
-
-    # null declarations #
-
     prn = []
     elev = []
     az = []
     snr = []
 
-    #---------------------------------------#
-    # loop over length of the gsv data list #
-    #---------------------------------------#
-    
-    for ii in range(len(gsv_data)):
-
-
-        # first block is cells 4 through 7 #
-        # data is prn, elev, az, snr       #
-        if ("*" in gsv_data[ii][4]): # if we have an early checksum, abort the next group of four
+    for i in range(len(gsv_data)):
+        current = np.array(gsv_data[i])
+        current[current == ''] = np.nan # any empty strings to NaN
+        if "*" in current[4]:
             break
-            
-        if ((gsv_data[ii][5] != '' and gsv_data[ii][6] != '' and gsv_data[ii][7] != '') and (not np.isnan(int(gsv_data[ii][4])) and int(gsv_data[ii][4]) <= 32)):
-            prn.append(int(gsv_data[ii][4])) 
-            elev.append(float(gsv_data[ii][5]))
-            az.append(float(gsv_data[ii][6]))
-            snr.append(float(gsv_data[ii][7]))
+        if current[4].isdigit() and int(current[4]) <= 32: # read the first prn block
+            prn.append(int(current[4]))
+            elev.append(float(current[5]))
+            az.append(float(current[6]))
+            snr.append(float(current[7]))
 
-        # second block is cells 8 through 11 #
-
-        if ("*" in gsv_data[ii][8]):  # if we have an early checksum, abort the next group of four
+        if "*" in current[8]: # stop if early checksum
             break
+        if current[8].isdigit() and int(current[8]) <= 32: # read the second prn block
+            prn.append(int(current[8]))
+            elev.append(float(current[9]))
+            az.append(float(current[10]))
+            snr.append(float(current[11]))
 
-        if ((gsv_data[ii][9] != '' and gsv_data[ii][10] != '' and gsv_data[ii][11] != '') and (not np.isnan(int(gsv_data[ii][8])) and int(gsv_data[ii][8]) <= 32)):
-            prn.append(int(gsv_data[ii][8]))
-            elev.append(float(gsv_data[ii][9]))
-            az.append(float(gsv_data[ii][10]))
-            snr.append(float(gsv_data[ii][11]))
-            
-        # third block is cells 12 through 15 #
-
-        if ("*" in gsv_data[ii][12]): # if we have an early checksum, abort the next group of four
+        if "*" in current[12]: # stop if early checksum
             break
-        
-        if ((gsv_data[ii][13] != '' and gsv_data[ii][14] != '' and gsv_data[ii][15] != '') and (not np.isnan(int(gsv_data[ii][12])) and int(gsv_data[ii][12]) <= 32)):
-            prn.append(int(gsv_data[ii][12]))
-            elev.append(float(gsv_data[ii][13]))
-            az.append(float(gsv_data[ii][14]))
-            snr.append(float(gsv_data[ii][15]))
+        if current[12].isdigit() and int(current[12]) <= 32: # read the third prn block
+            prn.append(int(current[12]))
+            elev.append(float(current[13]))
+            az.append(float(current[14]))
+            snr.append(float(current[15]))
 
-        # fourth block is cells 16 through 19 #
-        if ("*" in gsv_data[ii][16]): break
-        # gsv_data[ii][19] = gsv_data[ii][19].split("*")[0] # deals with checksum
-        # Not needed with UBlox data as we have an extra signal ID parameter after the CNO
-        
-        if ((gsv_data[ii][17] != '' and gsv_data[ii][18] != '' and gsv_data[ii][19] != '') and (not np.isnan(int(gsv_data[ii][16])) and int(gsv_data[ii][16]) <= 32)):
-            prn.append(int(gsv_data[ii][16]))
-            elev.append(float(gsv_data[ii][17]))
-            az.append(float(gsv_data[ii][18]))
-            snr.append(float(gsv_data[ii][19]))
+        if "*" in current[16]: # stop if early checksum
+            break
+        if current[16].isdigit() and int(current[16]) <= 32: # read the fourth prn block
+            prn.append(int(current[16]))
+            elev.append(float(current[17]))
+            az.append(float(current[18]))
+            snr.append(float(current[19]))
 
     return prn, elev, az, snr
 
