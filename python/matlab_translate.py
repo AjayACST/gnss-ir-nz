@@ -184,7 +184,7 @@ pvf = 2 # polynomial order used to remove the direct signal.
 # this can be smaller, especially for short eleveation angle ranges.
 
 min_rh = 0.4 # meters
-minAmp = 15
+minAmp = 2
 
 maxH = 8
 desiredPrecision = 0.005
@@ -206,25 +206,35 @@ naz = round(360/az_range)
 azim1 = 0
 azim2 = 360
 
-gnss_data = readGPS("../data/fiel1450.25.A", True)
+max_diff_time = 30 # max jump in time/dropped data
+
+gnss_data = readGPS("../data/25052200.LOG", True)
 
 for prn, group in enumerate(gnss_data, start=1):
     if group.size == 0:
         continue
 
-    el = group['el']
-    az = group['az']
+    #     get contiguous segments for prn
+    elevation = group['el']
+    azimuth = group['az']
     snr = group['snr']
+    time = group['utc']
+    seg_num = np.zeros_like(elevation)
+    max_seg = 0
+    seg_length = len(elevation)
 
-    i = find_indices(el, az, emin, emax, azim1, azim2)
+    time_diff = np.diff(time)
+    jump_indices = np.where(time_diff > max_diff_time)
+
+    i = find_indices(elevation, azimuth, emin, emax, azim1, azim2)
 
     if i.size == 0:
         continue
-    elev_angles = el[i]
+    elev_angles = elevation[i]
     if np.max(elev_angles) - np.min(elev_angles)>ediff:
         snr_db = np.power(10, snr[i]/20)
 
-        az_mean = np.mean(az[i])
+        az_mean = np.mean(azimuth[i])
 
         # Detrend the data
         p = np.polyfit(elev_angles, snr_db, pvf, rcond=None)

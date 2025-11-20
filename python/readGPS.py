@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import math
+from numpy.lib import recfunctions as rfn
 
 #=========#
 # readGPS #
@@ -25,7 +27,7 @@
 # import #
 #========#
 
-import numpy as np   
+import numpy as np
 import os
 
 from read_gpgsv import *
@@ -34,8 +36,8 @@ from read_gpgsv import *
 # constants #
 #===========#
 
-TRUE  = 1
-FALSE = 0
+# TRUE  = 1
+# FALSE = 0
 N_PRN = 32
 
 #=========#
@@ -47,14 +49,12 @@ def readGPS(Filename, interp=False):
     # open file #
     # -----------#
 
-    fid = open(Filename, 'r')
-
     # ----------------#
     # initialisation #
     # ----------------#
-
-    hour = minute = second = UTC = doy = date = 0
-    newblock = FALSE
+    #
+    # hour = minute = second = UTC = doy = date = 0
+    # new_block = False
     block_count = 0
 
     # -------------------------------------------------------#
@@ -62,9 +62,13 @@ def readGPS(Filename, interp=False):
     # -------------------------------------------------------#
 
     dt = np.dtype(
-        [('count', int), ('time', float), ('el', float), ('az', float), ('snr', float), ('utc', float), ('date', int)])
+        [('count', int), ('el', float), ('az', float), ('snr', float), ('utc', float), ('date', int)])
+    gps_dt = np.dtype(
+        [('hour', int), ('minute', int), ('second', int), ('date', int), ('timestamp', int)]
+    )
 
-    gps_data = [np.array([], dtype=dt) for _ in range(N_PRN)]  # creates a list of null vectors of length N_PRN
+    gnss_data = [np.array([], dtype=dt) for _ in range(N_PRN)]  # creates a list of null vectors of length N_PRN
+    # gps_data = []
     data_to_append = np.zeros(1, dtype=dt)  # structure we will use to append to gps_data
 
     # ------------------------------------------#
@@ -73,95 +77,86 @@ def readGPS(Filename, interp=False):
     # populsate our gps_data lists accordingly #
     # ------------------------------------------#
 
-    while not fid.tell() == os.fstat(fid.fileno()).st_size:
+    with open(Filename, 'r') as fid:
+        file = fid.read()
+        line_feed_count = file.count('\n\n')
+        # gps_data = [np.array([], dtype=gps_dt) for _ in range(line_feed_count)]
+        gps_data = np.zeros(line_feed_count+1, dtype=gps_dt)
+        fid.seek(0)
+        for line in fid:
+            line = line.rstrip()
+            if not line:
+                continue
+            if line.startswith("$GNGGA") or line.startswith("$GPGGA"):
+                new_block = True
+                data = line.split(',')
+                time_float = float(data[1])
+                hour = math.floor(time_float/10000)
+                minute = math.floor((time_float - hour * 10000)/100)
+                second = round(time_float - math.floor(time_float/100)*100)
+                gps_data[block_count]['hour'] = hour
+                gps_data[block_count]['minute'] = minute
+                gps_data[block_count]['second'] = second
 
-        # read first line #
-        line = fid.readline().rstrip()
-        if not line:
-            continue
+            elif line.startswith("$GPGSV") and new_block:
+                gsv = []
+                data = line.split(',')
+                gsv.append(data)
+                num_messages = int(data[1])
+                message_number = int(data[2])
+                if message_number == 1:
+                    while message_number < num_messages:
+                        line = fid.readline().rstrip()
+                        if line.startswith("$GPGSV"):
+                            temp_data = line.split(',')
+                            message_number = int(temp_data[2])
+                            num_messages = int(temp_data[1])
+                            gsv.append(temp_data)
+                        else:
+                            break
 
-        # --------------------------------#
-        # is this a GNGGA or GPGGA line? #
-        # if so populate time data       #
-        # --------------------------------#
+                    prn, elev, az, snr = read_gpgsv(gsv)
+                    for jj in range(len(prn)):
+                        idx = prn[jj] - 1
+                        data_to_append = np.zeros(1, dtype=dt)
+                        data_to_append[0]['count'] = block_count
+                        data_to_append[0]['el'] = elev[jj]
+                        data_to_append[0]['az'] = az[jj]
+                        data_to_append[0]['snr'] = snr[jj]
+                        data_to_append[0]['utc'] = time_float
 
-        elif line.startswith('$') and ('GNGGA' in line or 'GPGGA' in line):
-            newblock = TRUE
-            data = line.split(',')
-            utc = float(data[1])  # see the notes at end of file in the case you want to
-            # extract additional location or time fields
+                        if gnss_data[idx].size == 0:
+                            gnss_data[idx] = data_to_append
+                        else:
+                            gnss_data[idx] = np.concatenate((gnss_data[idx], data_to_append))
 
-        # --------------------------------------------------#
-        # is this a GPGSV line?                            #
-        # if so we will extract the prn, elev, az, and snr #
-        # --------------------------------------------------#
-
-        elif line.startswith('$') and 'GPGSV' in line and newblock == TRUE:
-            gsv = []  # container for GSV data
-            data = line.split(',')  # python command to create a list from comma separated varables
-            num_msg = int(data[1])  # number of messages from first data line
-            msg_n = int(data[2])  # message number from first data line
-            gsv.append(data)  # first line append data
-
-            # if there is more than 1 message... #
-            while msg_n < num_msg:
-                line = fid.readline().rstrip()  # read new line
-                if line.startswith('$') and 'GPGSV' in line:  # ensure it is GPGSV
-                    tmp_line = line.split(',')  # python command to create a list from comma separated varables
-                    msg_n = int(tmp_line[2])  # update msg_n
-                    num_msg = int(tmp_line[1])  # update num_msg
-                    gsv.append(tmp_line)  # append data
-                else:
-                    break
-            prn, elev, az, snr = read_gpgsv(gsv)  # populate the key parameters as per the read_gpgsv function
-
-            # populate the structure based on the read_gpgsv outputs #
-
-            for jj in range(len(prn)):
-                idx = prn[jj] - 1
-                data_to_append = np.zeros(1, dtype=dt)
-                data_to_append[0]['count'] = block_count
-                data_to_append[0]['el'] = elev[jj]
-                data_to_append[0]['az'] = az[jj]
-                data_to_append[0]['snr'] = snr[jj]
-                data_to_append[0]['utc'] = utc  # utc comes from the preceding GNGGA or GPGGA line
-
-                if gps_data[idx].size == 0:
-                    gps_data[idx] = data_to_append
-                else:
-                    gps_data[idx] = np.concatenate((gps_data[idx], data_to_append))
-
-        # =======================================#
-        # is this a GNRMC or GPRMC line?        #
-        # if so we extract day, month, and year #
-        # =======================================#
-
-        elif line.startswith('$') and ('GNRMC' in line or 'GPRMC' in line):
-            data = line.split(',')
-            day = int(data[9][:2])
-            month = int(data[9][2:4])
-            year = 2000 + int(data[9][4:6])
-            date = year * 10000 + month * 100 + day
-            if 'prn' in locals() or 'prn' in globals():
-                for jj in range(len(prn)):
-                    idx = prn[jj] - 1
-                    gps_data[idx][-1]['date'] = date
-                    gps_data[idx][-1]['utc'] = utc
-
+            elif line.startswith("$GNRMC") or line.startswith("$GPRMC"):
+                data = line.split(',')
+                day = int(data[9][:2])
+                month = int(data[9][2:4])
+                year = 2000 + int(data[9][4:6])
+                date = year * 10000 + month * 100 + day
+                gps_data[block_count]['date'] = date
                 block_count += 1
-                newblock = FALSE
+                new_block = False
 
-    # --------------------#
-    # cleanup and return #
-    # --------------------#
 
-    fid.close()
-
-    # Interpolation step (NumPy-only)
     if interp:
-        for prn, data in enumerate(gps_data, start=1):
+        for prn, data in enumerate(gnss_data, start=1):
             if data.size == 0:
                 continue
+
+            # first join in utc and date
+            idx = data['count'].astype(int) # get indices to gps_data
+            utc_vals = (
+                gps_data['hour'][idx] * 3600
+                + gps_data['minute'][idx] * 60
+                + gps_data['second'][idx]
+            )
+            # set utc time and date
+            data['utc'] = utc_vals
+            data['date'] = gps_data['date'][idx]
+
 
             el = data['el']
             utc = data['utc']
@@ -174,10 +169,7 @@ def readGPS(Filename, interp=False):
                 elv = np.interp(utc, timeshort, el[ind])
                 data['el'] = elv  # directly update elevation values
 
-
-
-    # print(df_updated.loc[2, 'el'])
-    return gps_data
+    return gnss_data
 
 # readGPS('../data/240531.LOG', True)
 
@@ -186,7 +178,7 @@ def readGPS(Filename, interp=False):
 ##==================##
 #
 # you can find lists of what is in each of the fields here in the case that you want more information.
-# 
+#
 # GPGGA: https://docs.novatel.com/OEM7/Content/Logs/GPGGA.htm
 # GPGSV: https://docs.novatel.com/OEM7/Content/Logs/GPGSV.htm
 # GPRMC: https://docs.novatel.com/OEM7/Content/Logs/GPRMC.htm
