@@ -8,7 +8,7 @@ function [ maxRH, maxRHAmp, pknoise ] = peak2noise(f,p,frange)
 [maxRHAmp,ij] = max(p); % max amplitude of LSP.
 maxRH = f(ij); % reflector height corresponding to max value
 % now do noise value
-i=find(f > frange(1) & f < frange(2));
+i=find(f > frange(1) | f < frange(2));
 noisey = mean(p(i));
 % divide into the max amplitude
 pknoise = maxRHAmp/noisey;

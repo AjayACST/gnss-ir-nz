@@ -15,7 +15,9 @@ LW=1;
 freqtype=1;
 maxHeight = 8; % (i.e. exclude reflector heights beyond this value)
 desiredPrecision = 0.005; % 5mm is a reasonable level for now. 
-frange = [0 8];
+frange = [6 2];
+minAmp = 15;
+pknoiseCrit=minAmp/2;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % the params in this block we will want to have students change/set (gui or
@@ -32,22 +34,24 @@ minPoints = 50; %it is totally arbitrary for now.
 
 emin = 6; emax =30;  %have found that the higher elevations are doing better
 
-ediff = 10;
+ediff = 8;
 maxazdiff=8;
 
-psllthresh=0.9;
-dcthresh = 0.35;
-snr_thresh=36;
-sampling_interval =5;  %could get this from the data itself but just lazy
+% psllthresh=0.9;
+% dcthresh = 0.35;
+% snr_thresh=36;
+sampling_interval =1;  %could get this from the data itself but just lazy
 Avtime = 60;  %smoothing time in seconds
 coeffMA = ones(1, Avtime/sampling_interval)*sampling_interval/Avtime;
 % azim1 = 235;
 % azim2 = 90;
-azim =[270 315 360 0 45 90];
+azim =[270 315 360 0 45 90 135 180];
+azim=[0 360]
 MaxHeight = 6;
 minRH   = 0.4; % meters
 maxdt = 30; %max jump in time/dropped data
-prn = [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
+snr_thresh = 36
+
 %end user parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for a=1:length(azim)-1  %just testing in one loop but that was for
@@ -95,23 +99,24 @@ for a=1:length(azim)-1  %just testing in one loop but that was for
         end
 
 
-        maxseg;
+        maxseg
 
         for ll = 0:maxseg
-   
+            ll
             
             %i=find(segnum==ll&el>emin&el<emax&az>azim1&az<azim2&~isnan(az)&~isnan(el)&~isnan(snr));  %%% added a condition here
             indel=find(segnum==ll&el>emin&el<emax&~isnan(az)&~isnan(el)&~isnan(snr));  %%% added a condition here
             azm = mean(gps_snr_data(sat).az(indel));
             indaz=find(gps_snr_data(sat).az(indel)>azim1&gps_snr_data(sat).az(indel)<azim2);
             mm=indel(indaz);
+           
             if(length(mm)>minPoints)
                
             
-                if((max(el(mm))-min(el(mm)))>ediff&&(max(az(mm))-min(az(mm)))<maxazdiff&&min(el(mm))<20)% & dt/3600 < maxArcTime )
+                if((max(el(mm))-min(el(mm)))>ediff&&(max(az(mm))-min(az(mm)))<maxazdiff)% & dt/3600 < maxArcTime )
                     disp("found a valid track")
-                    [minAmp,pknoiseCrit,frange ] = quicky_QC(freqtype, maxHeight, ...
-                        desiredPrecision, ediff,frange);
+                   % [minAmp,pknoiseCrit,frange ] = quicky_QC(freqtype, maxHeight, ...
+                    %    desiredPrecision, ediff,frange);
 
                     tmp=filter(coeffMA, 1, gps_snr_data(sat).snr(mm));  %
                     ind = find(tmp>snr_thresh);
@@ -178,14 +183,14 @@ for a=1:length(azim)-1  %just testing in one loop but that was for
                     maxObsE = max(elevAngles);
                     minObsE = min(elevAngles);%pknoise > pknoiseCrit & 
                    
-                    if maxRHAmp > minAmp & maxRH > minRH  &  pknoise > pknoiseCrit & ...
+                    if maxRHAmp > minAmp & maxRH > minRH  &  pknoise < pknoiseCrit & ...
                             (maxObsE-minObsE) > ediff;
                          figure(2)
                         subplot(2,1,1) % raw SNR data
                         plot(asind(sineE), saveSNR, '-','linewidth',LW);  hold on;
                         subplot(2,1,2) % periodogram
                         plot(f,p,'linewidth',LW) ; hold on;
-                        axis([0 6 0 20])
+                        axis([0 8 0 20])
                     end
                    
                   
