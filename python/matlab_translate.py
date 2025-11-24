@@ -1,7 +1,13 @@
+import datetime
+from collections import defaultdict
+from pathlib import Path
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import lfilter
-import pickle
+
 
 from readGPS import readGPS
 
@@ -177,6 +183,12 @@ def lomb(t, h, ofac, hifac):
 
     return f, P, prob, conf95
 
+def gps_to_nz(date_value, gps_seconds):
+    base_date = datetime.strptime(str(int(date_value)), "%Y%m%d")
+    gps_datetime = base_date + timedelta(seconds=float(gps_seconds))
+    utc_datetime = gps_datetime - timedelta(seconds=18)
+    return utc_datetime.replace(tzinfo=ZoneInfo("Pacific/Auckland"))
+
 pvf = 2 # polynomial order used to remove the direct signal.
 # this can be smaller, especially for short eleveation angle ranges.
 
@@ -215,118 +227,165 @@ azim1 = 0
 azim2 = 360
 
 max_diff_time = 30 # max jump in time/dropped data
+files_path = Path("../data").rglob("250522*.LOG")
+files_path = sorted(files_path, key=lambda x: x.name)
 
-gnss_data = readGPS("../data/new/25052013.LOG", True)
-# with open("testing.pickle", "rb") as f:
-#     gnss_data = pickle.load(f)
+fig, ax = plt.subplots(2, 2, figsize=(10,10))
+ax0 = ax[0,0]
+ax90 = ax[0,1]
+ax180 = ax[1,0]
+ax270 = ax[1,1]
 
-for prn, group in enumerate(gnss_data, start=1):
-    if group.size == 0:
-        continue
+fig_retrieval, (ax_height, ax_peak) = plt.subplots(2,1, figsize=(8,6))
+reflector_heights = []
+peak_amplitudes = []
+azimuths = []
+datetime_list = []
+for file in files_path:
+    print("Parsing file:", file.name)
+    gnss_data = readGPS(file, True)
 
-    #     get contiguous segments for prn
-    elevation = group['el']
-    azimuth = group['az']
-    snr = group['snr']
-    #TODO: implement time segmentation later, not needed for this testing file
+    for prn, group in enumerate(gnss_data, start=1):
+        if group.size == 0:
+            continue
 
-    # time = group['utc']
-    # seg_num = np.zeros_like(elevation)
-    # max_seg = 0
-    # seg_length = len(elevation)
-    #
-    # time_diff = np.diff(time)
-    # jump_indices = np.where(time_diff > max_diff_time)
+        #     get contiguous segments for prn
+        elevation = group['el']
+        azimuth = group['az']
+        snr = group['snr']
 
-    i = np.where((elevation > emin) & (elevation < emax) & (~np.isnan(snr)) & (~np.isnan(elevation)) & (~np.isnan(azimuth)))[0]
-    idx = np.where((azimuth[i]>azim1) & (azimuth[i]<azim2))[0]
-    i = i[idx]
+        i = np.where((elevation > emin) & (elevation < emax) & (~np.isnan(snr)) & (~np.isnan(elevation)) & (~np.isnan(azimuth)))[0]
+        idx = np.where((azimuth[i]>azim1) & (azimuth[i]<azim2))[0]
+        i = i[idx]
 
 
-    if len(i) > min_points:
-        if (np.max(elevation[i]) - np.min(elevation[i]) > ediff
-            and np.max(azimuth[i]) - np.min(azimuth[i]) < max_az_diff):
-            print("found a valid track")
-            minAmp, frange = 18, (6,2) # quicky_QC just returns these values, will move to function later
-            pknoiseCrit = minAmp/2
-            snr_subset = snr[i]
-            snr_filter = lfilter(coeff_ma[0], 1, snr_subset)
-            snr_index = np.where(snr_filter > snr_thresh)[0]
-            if snr_index.size == 0:
-                continue
-            snr_data = snr_subset[snr_index]
-            elevation_angles = elevation[i][snr_index]
-            azm = np.mean(azimuth[i])
+        if len(i) > min_points:
+            if (np.max(elevation[i]) - np.min(elevation[i]) > ediff
+                and np.max(azimuth[i]) - np.min(azimuth[i]) < max_az_diff):
+                print("found a valid track")
+                minAmp, frange = 18, (6,2) # quicky_QC just returns these values, will move to function later
+                pknoiseCrit = minAmp/2
+                snr_subset = snr[i]
+                snr_filter = lfilter(coeff_ma[0], 1, snr_subset)
+                snr_index = np.where(snr_filter > snr_thresh)[0]
+                if snr_index.size == 0:
+                    continue
+                snr_data = snr_subset[snr_index]
+                elevation_angles = elevation[i][snr_index]
+                azm = np.mean(azimuth[i])
 
-            # convert from dB to linear
-            snr_db = 10**(snr_data / 20)
+                # convert from dB to linear
+                snr_db = 10**(snr_data / 20)
 
-            # Detrend the data
-            p = np.polyfit(elevation_angles, snr_db, pvf)
-            pv = np.polyval(p, elevation_angles)
+                # Detrend the data
+                p = np.polyfit(elevation_angles, snr_db, pvf)
+                pv = np.polyval(p, elevation_angles)
 
-            smooth_data = smooth(snr_db-pv).conj().T
+                smooth_data = smooth(snr_db-pv).conj().T
 
-            save_snr_idx = round(len(coeff_ma)/2)
-            if len(smooth_data) <= save_snr_idx:
-                continue
-            save_snr = smooth_data[save_snr_idx:]
-            # fft is done on the sine of the elevation angles
-            aligned_elev = elevation_angles[save_snr_idx:]
-            trim_len = min(len(save_snr), len(aligned_elev))
-            if trim_len == 0:
-                continue
-            save_snr = save_snr[:trim_len]
-            aligned_elev = aligned_elev[:trim_len]
-            elev_angels = np.radians(aligned_elev) # convert to radians as np does not have sind function
-            sine_e = np.sin(elev_angels)
+                save_snr_idx = round(len(coeff_ma)/2)
+                if len(smooth_data) <= save_snr_idx:
+                    continue
+                save_snr = smooth_data[save_snr_idx:]
+                # fft is done on the sine of the elevation angles
+                aligned_elev = elevation_angles[save_snr_idx:]
+                trim_len = min(len(save_snr), len(aligned_elev))
+                if trim_len == 0:
+                    continue
+                save_snr = save_snr[:trim_len]
+                aligned_elev = aligned_elev[:trim_len]
+                elev_angels = np.radians(aligned_elev) # convert to radians as np does not have sind function
+                sine_e = np.sin(elev_angels)
 
-            # sort the data so all tracks are rising
-            sorted_x, j = np.unique(sine_e.conj().T, return_index=True)
+                # sort the data so all tracks are rising
+                sorted_x, j = np.unique(sine_e.conj().T, return_index=True)
 
-            sorted_y = save_snr[j]
-            sorted_x = sorted_x[1:-1]
-            sorted_y = sorted_y[1:-1]
+                sorted_y = save_snr[j]
+                sorted_x = sorted_x[1:-1]
+                sorted_y = sorted_y[1:-1]
 
-            ofac, hifac = get_ofac_hifac(elevation_angles, cf/2, maxH, desiredPrecision)
-            freq, power, prob, conf95 = lomb(sorted_x / (cf/2), sorted_y, ofac, hifac)
-            maxRh, maxAmp, pknoise = peak2noise(freq, power, frange)
-            maxObsElev = np.max(elevation_angles)
-            minObsElev = np.min(elevation_angles)
+                ofac, hifac = get_ofac_hifac(elevation_angles, cf/2, maxH, desiredPrecision)
+                freq, power, prob, conf95 = lomb(sorted_x / (cf/2), sorted_y, ofac, hifac)
+                maxRh, maxAmp, pknoise = peak2noise(freq, power, frange)
+                maxObsElev = np.max(elevation_angles)
+                minObsElev = np.min(elevation_angles)
 
-            if (maxAmp > minAmp
-                and maxRh > min_rh
-                and pknoise > pcrit
-                and (maxObsElev - minObsElev) > ediff):
-                plt.plot(freq, power)
+                if (maxAmp > minAmp
+                    and maxRh > min_rh
+                    and pknoise > pcrit
+                    and (maxObsElev - minObsElev) > ediff):
+
+                    power_max = np.argmax(power)
+                    idx = i[snr_index[j[power_max]]]
+                    utc = group['utc'][idx]
+                    date = group['date'][idx]
+
+                    reflector_heights.append(maxRh)
+                    peak_amplitudes.append(maxAmp)
+                    azimuths.append(group['az'][idx])
+                    print(date)
+                    datetime_list.append(gps_to_nz(date, utc))
+
+                    if 0 <= azm < 90:
+                        ax0.plot(freq, power)
+                    elif 90 <= azm < 180:
+                        ax90.plot(freq, power)
+                    elif 180 <= azm < 270:
+                        ax180.plot(freq, power)
+                    elif 270 <= azm < 360:
+                        ax270.plot(freq, power)
+
+start_datetime = datetime.strptime(files_path[0].stem, '%y%m%d%H').strftime('%d %b %Y %H:%m')
+end_datetime = datetime.strptime(files_path[-1].stem, '%y%m%d%H').replace(minute=59).strftime('%d %b %Y %H:%m')
+fig.suptitle(f"Height Retrievals by Azimuth Sector for {start_datetime}\nto\n{end_datetime}")
+
+ax0.set_title("Azimuth 0-90°")
+ax0.set_xlabel("Reflector Height (m)")
+ax0.grid(True)
+
+ax90.set_title("Azimuth 90-180°")
+ax90.set_xlabel("Reflector Height (m)")
+ax90.grid(True)
+
+ax180.set_title("Azimuth 180-270°")
+ax180.set_xlabel("Reflector Height (m)")
+ax180.grid(True)
+
+ax270.set_title("Azimuth 270-360°")
+ax270.set_xlabel("Reflector Height (m)")
+ax270.grid(True)
+
+# Plot retreival metrics
+fig_retrieval.suptitle(f"Retrieval Metrics for {start_datetime}\nto\n{end_datetime}")
+
+ax_height.scatter(azimuths, reflector_heights)
+ax_height.set_xlabel("Azimuth (degrees)")
+ax_height.set_ylabel("Reflector Height (m)")
+ax_height.grid(True)
+
+ax_peak.scatter(azimuths, peak_amplitudes)
+ax_peak.set_xlabel("Azimuth (degrees)")
+ax_peak.set_ylabel("Peak Amplitude")
+ax_peak.grid(True)
+
+# Plot height over time
+daily_heights= defaultdict(list)
+for dt, height in zip(datetime_list, reflector_heights):
+    daily_heights[dt.date()].append(height)
+
+daily_dates = []
+daily_avg_heights = []
+for day in sorted(daily_heights):
+    daily_dates.append(datetime.combine(day, datetime.min.time()))
+    daily_avg_heights.append(np.mean(daily_heights[day]))
+
+plt.figure(3, figsize=(8, 6))
+plt.plot(datetime_list, reflector_heights, marker='s', mfc='white', mec='black', linestyle='None', label='Individual Retrievals')
+plt.plot(daily_dates, daily_avg_heights, marker='s', mfc='blue', mec='black', linestyle='None', label='Average Daily Retrievals')
+plt.legend()
+plt.xlabel("Time (NZ)")
+plt.ylabel("Reflector Height (m)")
+plt.title(f"Reflector Height over Time for {start_datetime} to {end_datetime}")
+plt.grid(True)
+
 plt.show()
-
-
-#     elev_angles = elevation[i]
-#     if np.max(elev_angles) - np.min(elev_angles)>ediff:
-#         snr_db = np.power(10, snr[i]/20)
-#
-#         az_mean = np.mean(azimuth[i])
-#
-#         # Detrend the data
-#         p = np.polyfit(elev_angles, snr_db, pvf, rcond=None)
-#         pv = np.polyval(p, elev_angles)
-#         save_snr = smooth(snr_db-pv).conj().T
-#
-#         elev_angles_rad = np.radians(elev_angles) # convert to radians as np does not have sind function
-#         sine_e = np.sin(elev_angles_rad)
-#
-#         sorted_x, j = np.unique(sine_e.conj().T, return_index=True)
-#         es = np.sin(np.radians(0.01))
-#         Fs = 1/es
-#         sorted_y = save_snr[j]
-#         sorted_x_int = np.arange(np.min(sorted_x), np.max(sorted_x) + es, es)
-#         sorted_y_int = np.interp(sorted_x_int, sorted_x, sorted_y)
-#         ofac, hifac = get_ofac_hifac(elev_angles, cf/2, maxH, desiredPrecision)
-#
-#         freq, power, prob, conf95 = lomb(sorted_x_int / (cf/2), sorted_y_int, ofac, hifac)
-#         maxRh, maxAmp, pknoise = peak2noise(freq, power, (0, 8))
-#         if maxAmp > minAmp and maxRh > min_rh and pknoise > pcrit and (max(elev_angles) - min(elev_angles)) > ediff:
-#             plt.plot(freq, power)
-#         plt.xlim(0, 10)
-# plt.show()
