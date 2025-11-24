@@ -1,11 +1,12 @@
 import datetime
 from collections import defaultdict
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from scipy.signal import lfilter
 
 
@@ -227,7 +228,7 @@ azim1 = 0
 azim2 = 360
 
 max_diff_time = 30 # max jump in time/dropped data
-files_path = Path("../data").rglob("250522*.LOG")
+files_path = Path("../data").rglob("2505*.LOG")
 files_path = sorted(files_path, key=lambda x: x.name)
 
 fig, ax = plt.subplots(2, 2, figsize=(10,10))
@@ -379,13 +380,17 @@ for day in sorted(daily_heights):
     daily_dates.append(datetime.combine(day, datetime.min.time()))
     daily_avg_heights.append(np.mean(daily_heights[day]))
 
-plt.figure(3, figsize=(8, 6))
-plt.plot(datetime_list, reflector_heights, marker='s', mfc='white', mec='black', linestyle='None', label='Individual Retrievals')
-plt.plot(daily_dates, daily_avg_heights, marker='s', mfc='blue', mec='black', linestyle='None', label='Average Daily Retrievals')
-plt.legend()
-plt.xlabel("Time (NZ)")
-plt.ylabel("Reflector Height (m)")
-plt.title(f"Reflector Height over Time for {start_datetime} to {end_datetime}")
-plt.grid(True)
+fig_height_time, ax_height_time = plt.subplots(figsize=(8, 6))
+ax_height_time.plot(datetime_list, reflector_heights, marker='s', mfc='white', mec='black', linestyle='None', label='Individual Retrievals')
+ax_height_time.plot(daily_dates, daily_avg_heights, marker='s', mfc='blue', mec='black', linestyle='None', label='Average Daily Retrievals')
+ax_height_time.legend()
+ax_height_time.grid(True)
+ax_height_time.set_xlabel("Time (NZ)")
+ax_height_time.set_ylabel("Reflector Height (m)")
+fig_height_time.suptitle(f"Reflector Height over Time for {start_datetime} to {end_datetime}")
+
+# set date format on x-axis
+ax_height_time.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
+ax_height_time.xaxis.set_major_locator(mdates.DayLocator())
 
 plt.show()
