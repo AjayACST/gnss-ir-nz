@@ -1,3 +1,4 @@
+import configparser
 import datetime
 from collections import defaultdict
 
@@ -8,6 +9,8 @@ import matplotlib.dates as mdates
 
 from utils import smooth, get_ofac_hifac, peak2noise, gps_to_nz
 from lombscargle import lomb
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 class GNSSProcessor:
     def __init__(self):
@@ -18,26 +21,25 @@ class GNSSProcessor:
         self.freq_list = []
         self.power_list = []
 
-        self.pvf = 2 # polynomial order used to remove the direct signal.`
-        self.min_rh = 0.4 # meters
-        self.min_amp = 2
-        self.min_points = 50
-        self.max_az_diff = 8
-        self.max_height = 8
-        self.desired_precision = 0.005
-        self.pcrit = 3.5
-        self.emin = 6
-        self.emax = 30
-        self.ediff = 8
-        self.cf = 0.1902936
-        self.snr_thresh = 36
-        self.sampling_interval = 1 # need to get this from the data
-        self.av_time = 60
-
+        self.pvf = config['DEFAULT'].getint('pvf') # polynomial order used to remove the direct signal.`
+        self.min_rh = config['DEFAULT'].getfloat('min_rh') # meters
+        self.min_amp = config['DEFAULT'].getint('min_amp')
+        self.min_points = config['DEFAULT'].getint('min_points')
+        self.max_az_diff = config['DEFAULT'].getint('max_az_diff')
+        self.max_height = config['DEFAULT'].getint('max_height')
+        self.desired_precision = config['DEFAULT'].getfloat('desired_precision')
+        self.pcrit = config['DEFAULT'].getfloat('pcrit')
+        self.emin = config['DEFAULT'].getint('emin')
+        self.emax = config['DEFAULT'].getint('emax')
+        self.ediff = config['DEFAULT'].getint('ediff')
+        self.cf = config['DEFAULT'].getfloat('cf')
+        self.snr_thresh = config['DEFAULT'].getint('snr_thresh')
+        self.sampling_interval = config['DEFAULT'].getint('sampling_interval') # need to get this from the data
+        self.av_time = config['DEFAULT'].getint('av_time')
         self.coeff_ma = np.ones((1, int(self.av_time/self.sampling_interval))) * self.sampling_interval/self.av_time
 
-        self.azim1 = 0
-        self.azim2 = 360
+        self.azim1 = config['DEFAULT'].getint('azim1')
+        self.azim2 = config['DEFAULT'].getint('azim2')
 
     def process_gnss(self, gnss_data):
         """
