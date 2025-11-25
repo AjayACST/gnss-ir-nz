@@ -21,25 +21,25 @@ class GNSSProcessor:
         self.freq_list = []
         self.power_list = []
 
-        self.pvf = config['DEFAULT'].getint('pvf') # polynomial order used to remove the direct signal.`
-        self.min_rh = config['DEFAULT'].getfloat('min_rh') # meters
-        self.min_amp = config['DEFAULT'].getint('min_amp')
-        self.min_points = config['DEFAULT'].getint('min_points')
-        self.max_az_diff = config['DEFAULT'].getint('max_az_diff')
-        self.max_height = config['DEFAULT'].getint('max_height')
-        self.desired_precision = config['DEFAULT'].getfloat('desired_precision')
-        self.pcrit = config['DEFAULT'].getfloat('pcrit')
-        self.emin = config['DEFAULT'].getint('emin')
-        self.emax = config['DEFAULT'].getint('emax')
-        self.ediff = config['DEFAULT'].getint('ediff')
-        self.cf = config['DEFAULT'].getfloat('cf')
-        self.snr_thresh = config['DEFAULT'].getint('snr_thresh')
-        self.sampling_interval = config['DEFAULT'].getint('sampling_interval') # need to get this from the data
-        self.av_time = config['DEFAULT'].getint('av_time')
+        self.pvf = config['gnssr_parameters'].getint('pvf') # polynomial order used to remove the direct signal.`
+        self.min_rh = config['gnssr_parameters'].getfloat('min_rh') # meters
+        self.min_amp = config['gnssr_parameters'].getint('min_amp')
+        self.min_points = config['gnssr_parameters'].getint('min_points')
+        self.max_az_diff = config['gnssr_parameters'].getint('max_az_diff')
+        self.max_height = config['gnssr_parameters'].getint('max_height')
+        self.desired_precision = config['gnssr_parameters'].getfloat('desired_precision')
+        self.pcrit = config['gnssr_parameters'].getfloat('pcrit')
+        self.emin = config['gnssr_parameters'].getint('emin')
+        self.emax = config['gnssr_parameters'].getint('emax')
+        self.ediff = config['gnssr_parameters'].getint('ediff')
+        self.cf = config['gnssr_parameters'].getfloat('cf')
+        self.snr_thresh = config['gnssr_parameters'].getint('snr_thresh')
+        self.sampling_interval = config['gnssr_parameters'].getint('sampling_interval') # need to get this from the data
+        self.av_time = config['gnssr_parameters'].getint('av_time')
         self.coeff_ma = np.ones((1, int(self.av_time/self.sampling_interval))) * self.sampling_interval/self.av_time
 
-        self.azim1 = config['DEFAULT'].getint('azim1')
-        self.azim2 = config['DEFAULT'].getint('azim2')
+        self.azim1 = config['gnssr_parameters'].getint('azim1')
+        self.azim2 = config['gnssr_parameters'].getint('azim2')
 
     def process_gnss(self, gnss_data):
         """
@@ -144,7 +144,7 @@ class GNSSProcessor:
         :param date: Date corresponding to the GNSS data to be displayed.
         :return: None
         """
-        self.guard_graphs()
+        if not self.guard_graphs(): return
         start_date = date.strftime('%d %b %Y %H:%m')
         end_date = date.replace(minute=59).strftime('%d %b %Y %H:%m')
         fig, ax = plt.subplots(2, 2, figsize=(10,10))
@@ -187,7 +187,7 @@ class GNSSProcessor:
         :param date: Date corresponding to the GNSS data to be displayed.
         :return: None
         """
-        self.guard_graphs()
+        if not self.guard_graphs(): return
         start_date = date.strftime('%d %b %Y %H:%m')
         end_date = date.replace(minute=59).strftime('%d %b %Y %H:%m')
         fig_retrieval, (ax_height, ax_peak) = plt.subplots(2, 1, figsize=(8, 10))
@@ -213,7 +213,7 @@ class GNSSProcessor:
         Graph the reflector heights over time.
         :return: None
         """
-        self.guard_graphs()
+        if not self.guard_graphs(): return
         start_date = self.datetime_list[0].strftime('%d %b %Y %H:%m')
         end_date = self.datetime_list[-1].strftime('%d %b %Y %H:%m')
         daily_heights= defaultdict(list)

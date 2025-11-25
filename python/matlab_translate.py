@@ -7,7 +7,7 @@ from readGPS import readGPS
 
 if __name__ == "__main__":
     data_path = Path("../data")
-    files_path = data_path.rglob("2505*.LOG") # change this pattern to match your files use *.LOG for all log files
+    files_path = data_path.rglob("25052001*.LOG") # change this pattern to match your files use *.LOG for all log files
     files_path = sorted(files_path, key=lambda x: x.name)
 
     gnss_processor = GNSSProcessor()
