@@ -17,8 +17,14 @@ In 2025, we have:
 - Students deploy hardware to collect GNSS-IR data
 - Monitored snow depth changes at Snow Farm, Wānaka, New Zealand
 
+## Quick Links
+- [Hardware Build Tutorial](https://ajayacst.github.io/gnss-ir-docs/v1.1.0/build-tutorial-v1-1.html)
+- [Parts List](https://ajayacst.github.io/gnss-ir-docs/v1.1.0/parts-list-v1-1.html)
+- [Software Guide](https://ajayacst.github.io/gnss-ir-docs/v1.1.0/software-guide-v1-1-0.html)
+- [PDF Version of Docs](https://github.com/AjayACST/gnss-ir-docs/releases/download/v1.1.0/pdfSourceV1.1.0.pdf)
+
 ## Hardware
-We have a hardware build tutorial and parts list available through our documentation site: https://ajayacst.github.io/gnss-ir-docs/v1.0.0/build-tutorial.html
+We have a hardware build tutorial and parts list available through our documentation site: https://ajayacst.github.io/gnss-ir-docs/v1.1.0/build-tutorial-v1-1.html
 
 ## Running the Data Processing Software
 The data parsing and processing software has been written in Python, translated from MATLAB code by Dr. Delwyn Moller.
@@ -38,6 +44,8 @@ files_path = data_path.rglob("2505*.LOG")
 
 Simply change the string "2505*.LOG" to match the files you want to process. In this instance it will process all files
 starting with "2505" and ending with ".LOG".
+
+For more detailed instructions on how to use the data processing software, please see the [](Software-Guide-V1.1.0.md).
 
 ## Contributing
 We welcome contributions from anyone interested in GNSS-IR technology and its applications. If you would like to contribute,
