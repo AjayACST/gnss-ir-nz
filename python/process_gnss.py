@@ -144,6 +144,10 @@ class GNSSProcessor:
         :return: None
         """
         self.guard_graphs()
+        # check date is in date list
+        if all(dt.date() != date.date() for dt in self.datetime_list):
+            print("No data for the specified date: {}. Cannot generate graph.".format(date.strftime('%Y-%m-%d')))
+            return
         start_date = date.strftime('%d %b %Y %H:%m')
         end_date = date.replace(minute=59).strftime('%d %b %Y %H:%m')
         fig, ax = plt.subplots(2, 2, figsize=(10,10))
@@ -187,6 +191,10 @@ class GNSSProcessor:
         :return: None
         """
         self.guard_graphs()
+        # check date is in date list
+        if all(dt.date() != date.date() for dt in self.datetime_list):
+            print("No data for the specified date: {}. Cannot generate graph.".format(date.strftime('%Y-%m-%d')))
+            return
         start_date = date.strftime('%d %b %Y %H:%m')
         end_date = date.replace(minute=59).strftime('%d %b %Y %H:%m')
         fig_retrieval, (ax_height, ax_peak) = plt.subplots(2, 1, figsize=(8, 10))
