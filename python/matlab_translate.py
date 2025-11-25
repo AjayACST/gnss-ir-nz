@@ -39,6 +39,6 @@ if __name__ == "__main__":
         elif choice == "2":
             gnss_processor.graph_height_time()
         elif choice == "3":
-            exit(1)
+            exit(0)
         else:
             print("Invalid input")

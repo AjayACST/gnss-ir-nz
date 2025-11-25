@@ -135,8 +135,7 @@ class GNSSProcessor:
         """
         if len(self.reflector_heights) == 0:
             print("No reflector heights detected. Cannot generate graphs.")
-            return False
-        return True
+            exit(1)
 
     def graph_azimuths(self, date: datetime.datetime):
         """
@@ -144,7 +143,7 @@ class GNSSProcessor:
         :param date: Date corresponding to the GNSS data to be displayed.
         :return: None
         """
-        if not self.guard_graphs(): return
+        self.guard_graphs()
         start_date = date.strftime('%d %b %Y %H:%m')
         end_date = date.replace(minute=59).strftime('%d %b %Y %H:%m')
         fig, ax = plt.subplots(2, 2, figsize=(10,10))
@@ -187,7 +186,7 @@ class GNSSProcessor:
         :param date: Date corresponding to the GNSS data to be displayed.
         :return: None
         """
-        if not self.guard_graphs(): return
+        self.guard_graphs()
         start_date = date.strftime('%d %b %Y %H:%m')
         end_date = date.replace(minute=59).strftime('%d %b %Y %H:%m')
         fig_retrieval, (ax_height, ax_peak) = plt.subplots(2, 1, figsize=(8, 10))
@@ -213,7 +212,7 @@ class GNSSProcessor:
         Graph the reflector heights over time.
         :return: None
         """
-        if not self.guard_graphs(): return
+        self.guard_graphs()
         start_date = self.datetime_list[0].strftime('%d %b %Y %H:%m')
         end_date = self.datetime_list[-1].strftime('%d %b %Y %H:%m')
         daily_heights= defaultdict(list)
