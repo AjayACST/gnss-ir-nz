@@ -35,7 +35,7 @@ if __name__ == "__main__":
         elif choice == "1":
             date = input("Enter date in YYYY-MM-DD format: ")
             datetime_input = datetime.strptime(date, "%Y-%m-%d")
-            gnss_processor.graph_azimuths(datetime_input)
+            gnss_processor.graph_retrieval_metrics(datetime_input)
         elif choice == "2":
             gnss_processor.graph_height_time()
         elif choice == "3":
