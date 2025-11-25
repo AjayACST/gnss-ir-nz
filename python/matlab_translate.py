@@ -6,7 +6,7 @@ from readGPS import readGPS
 
 
 if __name__ == "__main__":
-    data_path = Path("../data")
+    data_path = Path("../sample_data/farm")
     files_path = data_path.rglob("25052001*.LOG") # change this pattern to match your files use *.LOG for all log files
     files_path = sorted(files_path, key=lambda x: x.name)
 
