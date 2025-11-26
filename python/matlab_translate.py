@@ -11,7 +11,7 @@ if __name__ == "__main__":
     files_path = sorted(files_path, key=lambda x: x.name)
     print("The default azimuth range is 0-360 degrees.")
     print("If you wish to limit this azimuth range please provide this now in the format 'min max' (e.g., '90 270').")
-    print("You can use multiple ranges, just press enter after the first range and provide the next range when prompted.")
+    print("You can input upto 4 azimuth ranges just press enter after the first range and provide the next range when prompted.")
     print("If you wish to use the default range, just press enter.")
     az_range_in = []
     while True:
@@ -22,13 +22,16 @@ if __name__ == "__main__":
             az_min, az_max = map(float, az_range_str.split())
             if 0 <= az_min < az_max <= 360:
                 az_range_in.append((az_min, az_max))
+                if len(az_range_in) >= 4:
+                    print("Maximum of 4 azimuth ranges reached.")
+                    break
             else:
                 print("Invalid range. Please ensure 0 <= min < max <= 360.")
         except ValueError:
             print("Invalid input. Please enter two numbers separated by a space.")
 
     if not az_range_in:
-        az_range_in = [(0, 360)]
+        az_range_in = [(0, 90), (90, 180), (180, 270), (270, 360)]
     print("Using azimuth ranges:", az_range_in)
     gnss_processor = GNSSProcessor(az_range_in)
 
@@ -36,7 +39,6 @@ if __name__ == "__main__":
         print("Parsing file:", file.name)
         gnss_data = readGPS(file, True)
         gnss_processor.process_gnss(gnss_data)
-
 
     choice = ""
     while choice != "3":

@@ -158,36 +158,41 @@ class GNSSProcessor:
         end_date = date.replace(minute=59).strftime('%d %b %Y %H:%m')
         fig, ax = plt.subplots(2, 2, figsize=(10,10))
         fig.suptitle("Height Retrievals by Azimuth Sector for {}\nto\n{}".format(start_date, end_date))
-        ax0 = ax[0,0]
-        ax0.set_title("Azimuth 0-90°")
-        ax0.set_xlabel("Reflector Height (m)")
-        ax0.grid()
+        for i in range(len(self.azimuth_bins)):
+            start, end = self.azimuth_bins[i]
+            ax_sector = ax[i//2, i%2]
+            ax_sector.set_title("Azimuth {}-{}°".format(int(start), int(end)))
+            ax_sector.set_xlabel("Reflector Height (m)")
+            ax_sector.grid()
 
-        ax90 = ax[0,1]
-        ax90.set_title("Azimuth 90-180°")
-        ax90.set_xlabel("Reflector Height (m)")
-        ax90.grid()
-
-        ax180 = ax[1,0]
-        ax180.set_title("Azimuth 180-270°")
-        ax180.set_xlabel("Reflector Height (m)")
-        ax180.grid()
-
-        ax270 = ax[1,1]
-        ax270.set_title("Azimuth 270-360°")
-        ax270.set_xlabel("Reflector Height (m)")
-        ax270.grid()
+        #
+        # ax0 = ax[0,0]
+        # ax0.set_title("Azimuth 0-90°")
+        # ax0.set_xlabel("Reflector Height (m)")
+        # ax0.grid()
+        #
+        # ax90 = ax[0,1]
+        # ax90.set_title("Azimuth 90-180°")
+        # ax90.set_xlabel("Reflector Height (m)")
+        # ax90.grid()
+        #
+        # ax180 = ax[1,0]
+        # ax180.set_title("Azimuth 180-270°")
+        # ax180.set_xlabel("Reflector Height (m)")
+        # ax180.grid()
+        #
+        # ax270 = ax[1,1]
+        # ax270.set_title("Azimuth 270-360°")
+        # ax270.set_xlabel("Reflector Height (m)")
+        # ax270.grid()
 
         for freq, power, az, dt in zip(self.freq_list, self.power_list, self.azimuths, self.datetime_list):
             if dt.date() == date.date():
-                if 0 <= az < 90:
-                    ax0.plot(freq, power)
-                elif 90 <= az < 180:
-                    ax90.plot(freq, power)
-                elif 180 <= az < 270:
-                    ax180.plot(freq, power)
-                elif 270 <= az < 360:
-                    ax270.plot(freq, power)
+                for i in range(len(self.azimuth_bins)):
+                    start, end = self.azimuth_bins[i]
+                    if start < az < end:
+                        ax_sector = ax[i//2, i%2]
+                        ax_sector.plot(freq, power)
         fig.show()
 
     def graph_retrieval_metrics(self, date: datetime.datetime):
