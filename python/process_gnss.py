@@ -13,7 +13,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 class GNSSProcessor:
-    def __init__(self):
+    def __init__(self, azimuth_bins):
         self.reflector_heights = []
         self.peak_amplitudes = []
         self.azimuths = []
@@ -38,8 +38,7 @@ class GNSSProcessor:
         self.av_time = config['gnssr_parameters'].getint('av_time')
         self.coeff_ma = np.ones((1, int(self.av_time/self.sampling_interval))) * self.sampling_interval/self.av_time
 
-        self.azim1 = config['gnssr_parameters'].getint('azim1')
-        self.azim2 = config['gnssr_parameters'].getint('azim2')
+        self.azimuth_bins = azimuth_bins
 
     def process_gnss(self, gnss_data):
         """
@@ -57,9 +56,16 @@ class GNSSProcessor:
             azimuth = group['az']
             snr = group['snr']
 
-            i = np.where((elevation > self.emin) & (elevation < self.emax) & (~np.isnan(snr)) & (~np.isnan(elevation)) & (~np.isnan(azimuth)))[0]
-            idx = np.where((azimuth[i]>self.azim1) & (azimuth[i]<self.azim2))[0]
-            i = i[idx]
+            i = np.where(
+                (elevation > self.emin) & (elevation < self.emax) & (~np.isnan(snr)) & (~np.isnan(elevation)) & (
+                    ~np.isnan(azimuth)))[0]
+
+            # create azimuth mask
+            mask = np.zeros(i.shape, dtype=bool)
+            for min_v, max_v in self.azimuth_bins:
+                current_range_mask = (azimuth[i] > min_v) & (azimuth[i] < max_v)
+                mask = np.logical_or(mask, current_range_mask)
+            i = i[mask]
 
             if len(i) > self.min_points:
                 if (np.max(elevation[i]) - np.min(elevation[i]) > self.ediff
