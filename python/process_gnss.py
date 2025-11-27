@@ -13,24 +13,24 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 class GNSSProcessor:
-    def __init__(self, azimuth_bins):
+    def __init__(self, azimuth_bins, min_el=6, max_el=30):
         self.reflector_heights = []
         self.peak_amplitudes = []
         self.azimuths = []
         self.datetime_list = []
         self.freq_list = []
         self.power_list = []
+        self.peak_noise = []
 
         self.pvf = config['gnssr_parameters'].getint('pvf') # polynomial order used to remove the direct signal.`
         self.min_rh = config['gnssr_parameters'].getfloat('min_rh') # meters
-        self.min_amp = config['gnssr_parameters'].getint('min_amp')
         self.min_points = config['gnssr_parameters'].getint('min_points')
         self.max_az_diff = config['gnssr_parameters'].getint('max_az_diff')
         self.max_height = config['gnssr_parameters'].getint('max_height')
-        self.desired_precision = config['gnssr_parameters'].getfloat('desired_precision')
+        self.desired_precision = 0.005
         self.pcrit = config['gnssr_parameters'].getfloat('pcrit')
-        self.emin = config['gnssr_parameters'].getint('emin')
-        self.emax = config['gnssr_parameters'].getint('emax')
+        self.emin = min_el
+        self.emax = max_el
         self.ediff = config['gnssr_parameters'].getint('ediff')
         self.cf = config['gnssr_parameters'].getfloat('cf')
         self.snr_thresh = config['gnssr_parameters'].getint('snr_thresh')
@@ -130,6 +130,7 @@ class GNSSProcessor:
                         self.peak_amplitudes.append(maxAmp)
                         self.azimuths.append(group['az'][idx])
                         self.datetime_list.append(gps_to_nz(date, utc))
+                        self.peak_noise.append(pknoise)
 
                         self.freq_list.append(freq)
                         self.power_list.append(power)
@@ -165,27 +166,6 @@ class GNSSProcessor:
             ax_sector.set_xlabel("Reflector Height (m)")
             ax_sector.grid()
 
-        #
-        # ax0 = ax[0,0]
-        # ax0.set_title("Azimuth 0-90°")
-        # ax0.set_xlabel("Reflector Height (m)")
-        # ax0.grid()
-        #
-        # ax90 = ax[0,1]
-        # ax90.set_title("Azimuth 90-180°")
-        # ax90.set_xlabel("Reflector Height (m)")
-        # ax90.grid()
-        #
-        # ax180 = ax[1,0]
-        # ax180.set_title("Azimuth 180-270°")
-        # ax180.set_xlabel("Reflector Height (m)")
-        # ax180.grid()
-        #
-        # ax270 = ax[1,1]
-        # ax270.set_title("Azimuth 270-360°")
-        # ax270.set_xlabel("Reflector Height (m)")
-        # ax270.grid()
-
         for freq, power, az, dt in zip(self.freq_list, self.power_list, self.azimuths, self.datetime_list):
             if dt.date() == date.date():
                 for i in range(len(self.azimuth_bins)):
@@ -208,22 +188,30 @@ class GNSSProcessor:
             return
         start_date = date.strftime('%d %b %Y %H:%m')
         end_date = date.replace(minute=59).strftime('%d %b %Y %H:%m')
-        fig_retrieval, (ax_height, ax_peak) = plt.subplots(2, 1, figsize=(8, 10))
+        fig_retrieval, (ax_height, ax_peak, ax_noise) = plt.subplots(3, 1, figsize=(8, 10))
 
         fig_retrieval.suptitle("Retrieval Metrics for {}\nto\n{}".format(start_date, end_date))
 
         ax_height.set_xlabel("Azimuth (degrees)")
         ax_height.set_ylabel("Reflector Height (m)")
+        ax_height.set_ylim(self.min_rh, self.max_height)
         ax_height.grid()
 
         ax_peak.set_xlabel("Azimuth (degrees)")
         ax_peak.set_ylabel("Peak Amplitude")
         ax_peak.grid()
 
-        for rh, pa, az, dt in zip(self.reflector_heights, self.peak_amplitudes, self.azimuths, self.datetime_list):
+        ax_noise.set_xlabel("Azimuth (degrees)")
+        ax_noise.set_ylabel("Peak to Noise Ratio")
+        ax_noise.grid()
+
+        for rh, pa, pk, az, dt in zip(self.reflector_heights, self.peak_amplitudes, self.peak_noise, self.azimuths, self.datetime_list):
             if dt.date() == date.date():
                 ax_height.scatter(az, rh)
                 ax_peak.scatter(az, pa)
+                ax_noise.scatter(az, pk)
+
+        ax_peak.plot()
         fig_retrieval.show()
 
     def graph_height_time(self):

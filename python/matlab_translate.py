@@ -7,12 +7,16 @@ from readGPS import readGPS
 
 if __name__ == "__main__":
     data_path = Path("../sample_data/farm")
-    files_path = data_path.rglob("250520*.LOG") # change this pattern to match your files use *.LOG for all log files
+    input_match = ""
+    while input_match == "":
+        input_match = input("Enter file name match pattern (e.g. 250522*.LOG). See the documentation for more details: ")
+    files_path = data_path.rglob(input_match)
     files_path = sorted(files_path, key=lambda x: x.name)
-    print("The default azimuth range is 0-360 degrees.")
+    print("The default azimuth range is 0-360 degrees, in 90 degree range bins.")
     print("If you wish to limit this azimuth range please provide this now in the format 'min max' (e.g., '90 270').")
     print("You can input upto 4 azimuth ranges just press enter after the first range and provide the next range when prompted.")
     print("If you wish to use the default range, just press enter.")
+
     az_range_in = []
     while True:
         az_range_str = input("Enter azimuth range (or press enter to finish): ")
@@ -33,6 +37,9 @@ if __name__ == "__main__":
     if not az_range_in:
         az_range_in = [(0, 90), (90, 180), (180, 270), (270, 360)]
     print("Using azimuth ranges:", az_range_in)
+
+    min_el = input("What should the minimum elevation angle be for processing? (default is 6 degrees)")
+    max_el = input("What should the maximum elevation angle be for processing? (default is 30 degrees)")
     gnss_processor = GNSSProcessor(az_range_in)
 
     for file in files_path:
