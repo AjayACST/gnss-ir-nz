@@ -21,6 +21,8 @@ class GNSSProcessor:
         self.freq_list = []
         self.power_list = []
         self.peak_noise = []
+        self.elevations = []  # store elevation at detection
+        self.tracks = []  # cache az/el samples for each valid retrieval
 
         self.pvf = config['gnssr_parameters'].getint('pvf') # polynomial order used to remove the direct signal.`
         self.min_rh = config['gnssr_parameters'].getfloat('min_rh') # meters
@@ -79,6 +81,9 @@ class GNSSProcessor:
                     snr_data = snr_subset[snr_index]
                     elevation_angles = elevation[i][snr_index]
                     azm = np.mean(azimuth[i])
+                    track_indices = i[snr_index]
+                    track_az = np.array(azimuth[track_indices], copy=True)
+                    track_el = np.array(elevation[track_indices], copy=True)
 
                     # convert from dB to linear
                     snr_db = 10**(snr_data / 20)
@@ -129,11 +134,13 @@ class GNSSProcessor:
                         self.reflector_heights.append(maxRh)
                         self.peak_amplitudes.append(maxAmp)
                         self.azimuths.append(group['az'][idx])
+                        self.elevations.append(group['el'][idx])  # record elevation at detection
                         self.datetime_list.append(gps_to_nz(date, utc))
                         self.peak_noise.append(pknoise)
 
                         self.freq_list.append(freq)
                         self.power_list.append(power)
+                        self.tracks.append({'az': track_az, 'el': track_el})
 
     def guard_graphs(self):
         """
@@ -245,3 +252,41 @@ class GNSSProcessor:
         ax_height_time.xaxis.set_major_locator(mdates.DayLocator())
 
         fig_height_time.show()
+
+    def graph_az_el_polar(self, date: datetime.datetime):
+        """
+        Polar line plot of azimuth (theta) vs elevation (radius) tracks for a given date.
+        Each line represents a valid satellite track.
+        """
+        self.guard_graphs()
+        if all(dt.date() != date.date() for dt in self.datetime_list):
+            print("No data for the specified date: {}. Cannot generate graph.".format(date.strftime('%Y-%m-%d')))
+            return
+
+        start_date = date.strftime('%d %b %Y %H:%M')
+        end_date = date.replace(minute=59).strftime('%d %b %Y %H:%M')
+        fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 8))
+        fig.suptitle("Azimuth vs Elevation (polar) for {}\nto\n{}".format(start_date, end_date))
+
+        plotted = False
+        for track, dt in zip(self.tracks, self.datetime_list):
+            if dt.date() == date.date():
+                thetas = np.deg2rad(track['az'])
+                radii = np.asarray(track['el'])
+                if radii.size == 0:
+                    continue
+                ax.plot(thetas, radii, linewidth=1.5, alpha=0.9, color='tab:blue')
+                plotted = True
+
+        if not plotted:
+            print("No tracks to plot for the date:", date.strftime('%Y-%m-%d'))
+            plt.close(fig)
+            return
+
+        ax.set_theta_zero_location('N')
+        ax.set_theta_direction(-1)
+        ax.set_rlim(self.emin, self.emax)
+        ax.set_rlabel_position(135)
+        ax.grid(True)
+
+        fig.show()

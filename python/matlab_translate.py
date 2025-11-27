@@ -38,8 +38,8 @@ if __name__ == "__main__":
         az_range_in = [(0, 90), (90, 180), (180, 270), (270, 360)]
     print("Using azimuth ranges:", az_range_in)
 
-    min_el = input("What should the minimum elevation angle be for processing? (default is 6 degrees)")
-    max_el = input("What should the maximum elevation angle be for processing? (default is 30 degrees)")
+    min_el = input("What should the minimum elevation angle be for processing? (default is 6 degrees): ")
+    max_el = input("What should the maximum elevation angle be for processing? (default is 30 degrees): ")
     gnss_processor = GNSSProcessor(az_range_in)
 
     for file in files_path:
@@ -52,8 +52,9 @@ if __name__ == "__main__":
         print("Select option to graph:")
         print("0 - Plot Azimuths by Region for a Date")
         print("1 - Plot Retrieval Metrics for a Date")
-        print("2 - Plot height over time")
-        print("3 - Exit")
+        print("2 - Polar Plot of Azimuths for a Date")
+        print("3 - Plot height over time")
+        print("4 - Exit")
 
         choice = input("Enter choice: ")
 
@@ -66,8 +67,12 @@ if __name__ == "__main__":
             datetime_input = datetime.strptime(date, "%Y-%m-%d")
             gnss_processor.graph_retrieval_metrics(datetime_input)
         elif choice == "2":
-            gnss_processor.graph_height_time()
+            date = input("Enter date in YYYY-MM-DD format: ")
+            datetime_input = datetime.strptime(date, "%Y-%m-%d")
+            gnss_processor.graph_az_el_polar(datetime_input)
         elif choice == "3":
+            gnss_processor.graph_height_time()
+        elif choice == "4":
             exit(0)
         else:
             print("Invalid input")
