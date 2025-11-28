@@ -36,11 +36,37 @@ class GNSSProcessor:
         self.ediff = config['gnssr_parameters'].getint('ediff')
         self.cf = 0.1902936 # only supporting L1 for now
         self.snr_thresh = config['gnssr_parameters'].getint('snr_thresh')
-        self.sampling_interval = config['gnssr_parameters'].getint('sampling_interval') # need to get this from the data
+        self.sampling_interval = 5
         self.av_time = config['gnssr_parameters'].getint('av_time')
         self.coeff_ma = np.ones((1, int(self.av_time/self.sampling_interval))) * self.sampling_interval/self.av_time
 
         self.azimuth_bins = azimuth_bins
+
+    def get_sampling_interval_from_group(self, group):
+        """
+        Simple HHMMSS-only estimator.
+
+        Treats each value in `group['utc']` as an HHMMSS float (e.g. 123519.0), converts to
+        seconds since midnight, and returns the median positive difference between consecutive samples.
+        Returns None if an interval cannot be computed.
+        """
+        try:
+            utc = np.asarray(group['utc'], dtype=float)
+        except Exception:
+            return None
+
+        utc = utc[~np.isnan(utc)]
+        if utc.size < 2:
+            return None
+
+        ints = utc.astype(int)
+        secs = (ints // 10000) * 3600 + ((ints % 10000) // 100) * 60 + (ints % 100)
+        diffs = np.diff(secs)
+        diffs = diffs[diffs > 0]
+        if diffs.size == 0:
+            return None
+
+        return float(np.median(diffs))
 
     def process_gnss(self, gnss_data):
         """
@@ -68,6 +94,13 @@ class GNSSProcessor:
                 current_range_mask = (azimuth[i] > min_v) & (azimuth[i] < max_v)
                 mask = np.logical_or(mask, current_range_mask)
             i = i[mask]
+
+            # calculate interval
+            sampling_interval = self.get_sampling_interval_from_group(group)
+            if sampling_interval != self.sampling_interval:
+                self.sampling_interval = sampling_interval
+                self.coeff_ma = np.ones(
+                    (1, int(self.av_time / self.sampling_interval))) * self.sampling_interval / self.av_time
 
             if len(i) > self.min_points:
                 if (np.max(elevation[i]) - np.min(elevation[i]) > self.ediff
