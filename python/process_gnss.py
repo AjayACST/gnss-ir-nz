@@ -34,7 +34,7 @@ class GNSSProcessor:
         self.emin = min_el
         self.emax = max_el
         self.ediff = config['gnssr_parameters'].getint('ediff')
-        self.cf = config['gnssr_parameters'].getfloat('cf')
+        self.cf = 0.1902936 # only supporting L1 for now
         self.snr_thresh = config['gnssr_parameters'].getint('snr_thresh')
         self.sampling_interval = config['gnssr_parameters'].getint('sampling_interval') # need to get this from the data
         self.av_time = config['gnssr_parameters'].getint('av_time')
