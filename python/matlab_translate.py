@@ -6,7 +6,7 @@ from readGPS import readGPS
 
 
 if __name__ == "__main__":
-    data_path = Path("../sample_data/farm")
+    data_path = Path("../sample_data")
     input_match = ""
     while input_match == "":
         input_match = input("Enter file name match pattern (e.g. 250522*.LOG). See the documentation for more details: ")
